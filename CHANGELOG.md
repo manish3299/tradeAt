@@ -15,6 +15,8 @@ All notable changes are recorded here. The project follows semantic versioning o
 - React/Vite frontend foundation with accessible ready, degraded, and unreachable platform states.
 - Laptop-friendly lite dependency mode and a GitHub Actions quality/migration/security workflow.
 - Optional Docker Compose development dependencies for external PostgreSQL/Redis validation on capable machines.
+- Versioned decision policy defining data/regime/setup gates, independent evidence groups, bounded Kronos evidence, calibrated confidence, and risk-aware target validation.
+- Paper-trading specification covering simulated accounts, orders, fills, positions, ledger reconciliation, deterministic execution assumptions, risk controls, APIs, UI safety labeling, and separated statistics.
 - Strict TypeScript, ESLint, Prettier, Vitest, production build, and dependency-audit gates.
 
 ### Fixed
@@ -24,6 +26,7 @@ All notable changes are recorded here. The project follows semantic versioning o
 ### Improved
 
 - Local development no longer requires Docker, PostgreSQL, or Redis.
+- Decision quality is explicitly measured by expectancy, calibration, drawdown, target-one outcomes, and abstention reasons instead of signal count alone.
 
 ### Known issues
 

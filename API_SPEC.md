@@ -20,6 +20,9 @@
 | `GET /indicators`, `GET /signals`                                                    | Versioned analytical outputs                   |
 | `GET /decisions`, `GET /decisions/{id}`                                              | Decisions and contributions                    |
 | `GET/POST /trades`, `PATCH /trades/{id}`, `POST /trades/{id}/events`                 | Journal lifecycle                              |
+| `GET/POST /paper/accounts`, `POST /paper/accounts/{id}/reset`                        | Paper account lifecycle                        |
+| `GET/POST /paper/orders`, `POST /paper/orders/{id}/cancel`                           | Submit/cancel simulated orders                 |
+| `GET /paper/positions`, `GET /paper/fills`, `GET /paper/equity`                      | Simulated portfolio and execution history      |
 | `POST /replays`, `POST /replays/{id}/control`, `GET /replays/{id}`                   | Replay creation and control                    |
 | `GET /statistics`                                                                    | Metric query with cohort and window parameters |
 | `GET /plugins`, `POST /plugins/install`, `PATCH /plugins/{id}`                       | Plugin lifecycle                               |
@@ -29,6 +32,20 @@ OpenAPI is generated and contract-tested once implementation begins.
 ## WebSocket
 
 Connect at `/api/v1/stream`. Client messages subscribe/unsubscribe to authorized topics such as `market.bar`, `indicator.value`, `decision.published`, `replay.event`, and `system.health`. Each server message uses the architecture event envelope and includes a monotonically increasing connection sequence number. Clients detect gaps and resynchronize over HTTP.
+
+Paper trading additionally publishes authorized `paper.order`, `paper.fill`,
+`paper.position`, and `paper.equity` events. Every paper mutation requires an
+idempotency key and returns an explicit `execution_mode: "paper"` field.
+
+## Paper execution rules
+
+Paper orders never call a broker adapter. Market orders fill using the next
+eligible market observation after simulated latency; limit and stop orders require
+the market to trade through their trigger under a documented bar/tick policy.
+Fees, spread, slippage, liquidity limits, partial fills, trading-session rules,
+and rejection reasons are versioned configuration. When the available data cannot
+determine execution order inside a bar, the simulator uses a declared conservative
+policy rather than choosing the profitable path.
 
 ## Query safety
 

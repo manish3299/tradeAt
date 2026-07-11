@@ -4,6 +4,12 @@
 
 Metrics declare eligibility rules, time window, cohort filters, currency normalization, costs/slippage inclusion, definition version, sample size, and uncertainty where applicable. Open trades are excluded from realized-return metrics unless explicitly stated. Let each closed trade have net P&L `p_i`, initial risk `risk_i > 0`, return `r_i`, and `R_i = p_i / risk_i`.
 
+Every result is segmented by execution origin: `paper`, `manual`, `replay`, or a
+future broker source. Paper statistics disclose the simulation model version,
+starting capital, fees, slippage, spread, latency, fill policy, and market-data
+resolution. Origins are not combined unless the user explicitly requests a
+labeled comparison.
+
 | Metric                  | Definition                                                                                |
 | ----------------------- | ----------------------------------------------------------------------------------------- |
 | Win / loss rate         | wins or losses divided by eligible closed trades; breakeven reported separately           |
@@ -31,6 +37,7 @@ Metrics declare eligibility rules, time window, cohort filters, currency normali
 - Market regime statistics using the regime version active at decision time.
 - Plugin reliability: availability, successful runs, timeout/error rate, p50/p95 latency, freshness, deterministic mismatch rate, and contribution outcome.
 - Strategy statistics by strategy/configuration version.
+- Paper execution statistics: order rejection/cancellation rate, fill rate, partial-fill rate, modeled slippage, fees, exposure, turnover, equity curve, and decision-to-fill latency.
 
 ## Statistical safeguards
 

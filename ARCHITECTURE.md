@@ -13,6 +13,7 @@ API + application services
   |-- Analytics/plugin module
   |-- Decision module
   |-- Journal module
+  |-- Paper trading module (simulation only)
   |-- Replay module
   |-- Statistics module
   |-- Learning module (gated)
@@ -76,3 +77,7 @@ Every real-time/domain event includes `event_id`, `event_type`, `schema_version`
 ### ADR-006: Lite local dependencies by default
 
 **Status:** accepted. **Decision:** Local development defaults to `DEPENDENCY_MODE=lite`, which uses in-process readiness probes and skips database migrations. `DEPENDENCY_MODE=external` enables PostgreSQL/Redis probes and migration execution for staging, production, or stronger development machines. **Reason:** the project must remain usable on low-resource laptops without losing the production architecture.
+
+### ADR-007: Paper execution before broker execution
+
+**Status:** accepted. **Decision:** v1 may simulate market, limit, stop, and stop-limit orders through an internal paper-trading port, but no adapter may submit an order to a broker. Paper fills use versioned, deterministic fee, spread, slippage, latency, and liquidity assumptions. **Reason:** complete decision-to-outcome testing is valuable before accepting the operational and financial risk of real execution. This does not change ADR-004; automated real-money execution remains out of scope.

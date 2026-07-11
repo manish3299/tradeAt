@@ -6,19 +6,20 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 
 ## Core tables
 
-| Module        | Tables                                                            | Notes                                              |
-| ------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
-| Identity      | `users`, `workspaces`, `memberships`, `refresh_tokens`            | Tokens are hashed at rest.                         |
-| Configuration | `instruments`, `watchlists`, `watchlist_items`, `config_versions` | Instruments are venue-qualified.                   |
-| Market        | `market_events`, `bars`, `data_quality_incidents`                 | Raw events append-only; unique provider event key. |
-| Plugins       | `plugin_manifests`, `plugin_installations`, `plugin_runs`         | Manifest and configuration versions retained.      |
-| Analytics     | `indicator_values`, `signals`, `regimes`                          | Unique by input/version identity.                  |
-| Decisions     | `decisions`, `decision_contributions`                             | Published records immutable.                       |
-| Journal       | `trades`, `trade_events`, `trade_tags`, `trade_notes`             | Events preserve lifecycle history.                 |
-| Replay        | `replay_sessions`, `replay_checkpoints`, `replay_outputs`         | Stores dataset/config/plugin versions and seed.    |
-| Statistics    | `metric_definitions`, `metric_snapshots`                          | Definition version and cohort filters required.    |
-| Learning      | `datasets`, `model_versions`, `model_evaluations`, `predictions`  | Point-in-time feature provenance required.         |
-| Operations    | `outbox_events`, `idempotency_keys`, `audit_events`               | Retention policy per category.                     |
+| Module        | Tables                                                                                     | Notes                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Identity      | `users`, `workspaces`, `memberships`, `refresh_tokens`                                     | Tokens are hashed at rest.                                                                  |
+| Configuration | `instruments`, `watchlists`, `watchlist_items`, `config_versions`                          | Instruments are venue-qualified.                                                            |
+| Market        | `market_events`, `bars`, `data_quality_incidents`                                          | Raw events append-only; unique provider event key.                                          |
+| Plugins       | `plugin_manifests`, `plugin_installations`, `plugin_runs`                                  | Manifest and configuration versions retained.                                               |
+| Analytics     | `indicator_values`, `signals`, `regimes`                                                   | Unique by input/version identity.                                                           |
+| Decisions     | `decisions`, `decision_contributions`                                                      | Published records immutable.                                                                |
+| Journal       | `trades`, `trade_events`, `trade_tags`, `trade_notes`                                      | Events preserve lifecycle history.                                                          |
+| Paper trading | `paper_accounts`, `paper_orders`, `paper_fills`, `paper_positions`, `paper_ledger_entries` | Simulation records are broker-isolated and append-only where financial history is involved. |
+| Replay        | `replay_sessions`, `replay_checkpoints`, `replay_outputs`                                  | Stores dataset/config/plugin versions and seed.                                             |
+| Statistics    | `metric_definitions`, `metric_snapshots`                                                   | Definition version and cohort filters required.                                             |
+| Learning      | `datasets`, `model_versions`, `model_evaluations`, `predictions`                           | Point-in-time feature provenance required.                                                  |
+| Operations    | `outbox_events`, `idempotency_keys`, `audit_events`                                        | Retention policy per category.                                                              |
 
 ## Market keys
 
@@ -30,6 +31,7 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 
 - Time-series tables index `(instrument_id, observed_at DESC)` and partition by time after benchmark evidence.
 - Journal queries index `(workspace_id, opened_at DESC)` and status.
+- Paper orders and fills index `(paper_account_id, created_at DESC)`; an account reset closes the current account version rather than deleting its history.
 - JSONB is allowed for bounded provider metadata and plugin output extensions, not for core query fields.
 
 ## Retention
@@ -41,3 +43,10 @@ Retention is configuration-driven and legally/data-license compliant. Deleting a
 - Migrations are forward-only in deployed environments.
 - Use expand/migrate/contract for incompatible schema changes.
 - Each migration has a rollback or recovery note and is tested against representative data.
+
+## Paper-trading integrity
+
+- Every order records decision/configuration version, simulation model version, requested quantity, order type, timestamps, and idempotency key.
+- Every fill records the source market event/bar, simulated latency, spread, slippage, fee, quantity, and price.
+- Cash and position changes create balanced immutable ledger entries; derived balances are reconcilable from the ledger.
+- Paper, manual, replay, and any future broker-originated trades use explicit origin fields and are never silently merged.

@@ -9,6 +9,7 @@ Trading tools often separate market context, signal reasoning, journaling, repla
 - A user can monitor configured instruments and see fresh, explained indicator values.
 - A user can inspect a decision score and the contribution of each enabled component.
 - A user can journal a trade and measure its lifecycle consistently.
+- A user can paper trade decisions with simulated fills, fees, slippage, positions, and account equity without connecting a broker.
 - A user can replay a historical period without look-ahead leakage.
 - A user can compare versions using statistically defined metrics and cohorts.
 - A developer can install a compatible plugin without editing core modules.
@@ -20,6 +21,7 @@ Trading tools often separate market context, signal reasoning, journaling, repla
 - Replays are deterministic in automated tests.
 - A new reference indicator plugin can be added in under one working day.
 - Users can trace any displayed metric to its definition, filters, and data window.
+- Paper orders never leave TradeAt, and simulated results are visually and statistically separated from real/manual records.
 
 ## Constraints
 
