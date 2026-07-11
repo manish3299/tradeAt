@@ -1,0 +1,35 @@
+{
+  "name": "@tradeat/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/infrastructure/database/migrate.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.0.1",
+    "drizzle-orm": "0.45.2",
+    "fastify": "5.10.0",
+    "ioredis": "5.6.1",
+    "pg": "8.16.3",
+    "zod": "3.25.67"
+  },
+  "devDependencies": {
+    "@types/node": "24.0.7",
+    "@types/pg": "8.15.4",
+    "@vitest/coverage-v8": "4.1.10",
+    "drizzle-kit": "0.31.10",
+    "pino-pretty": "13.0.0",
+    "tsx": "4.20.3",
+    "typescript": "5.8.3",
+    "vite": "8.1.4",
+    "vitest": "4.1.10"
+  }
+}
