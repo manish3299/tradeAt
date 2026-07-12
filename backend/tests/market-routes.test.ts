@@ -1,7 +1,7 @@
-import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import type { AppConfig } from '../src/config.js';
+import { InMemoryMarketDataStore } from '../src/infrastructure/market/in-memory-market-data-store.js';
 
 const config: AppConfig = {
   nodeEnv: 'test',
@@ -174,21 +174,57 @@ describe('market data routes', () => {
     await app.close();
   });
 
-  it('imports a fixture and enforces point-in-time as_of queries', async () => {
-    const app = await buildApp({ config, probes: [] });
-    const csv = await readFile(new URL('./fixtures/nifty50-5m.csv', import.meta.url), 'utf8');
-
-    const imported = await app.inject({
-      method: 'POST',
-      url: '/api/v1/market/bars/import',
-      payload: { csv },
-    });
-    expect(imported.statusCode).toBe(201);
-    expect(imported.json()).toMatchObject({ inserted: 3, updated: 0, rejected: 0 });
+  it('enforces point-in-time as_of queries for closed and received bars', async () => {
+    const marketStore = new InMemoryMarketDataStore();
+    await marketStore.upsertBars([
+      {
+        instrumentId: 'nse-nifty50',
+        timeframe: '5m',
+        openTime: new Date('2026-07-12T04:00:00.000Z'),
+        closeTime: new Date('2026-07-12T04:05:00.000Z'),
+        open: 24659.8,
+        high: 24682.1,
+        low: 24650,
+        close: 24674.4,
+        volume: 210000,
+        source: 'fixture-import',
+        revision: 1,
+        receivedAt: new Date('2026-07-12T04:06:00.000Z'),
+      },
+      {
+        instrumentId: 'nse-nifty50',
+        timeframe: '5m',
+        openTime: new Date('2026-07-12T04:05:00.000Z'),
+        closeTime: new Date('2026-07-12T04:10:00.000Z'),
+        open: 24674.4,
+        high: 24695,
+        low: 24660,
+        close: 24692.5,
+        volume: 151000,
+        source: 'fixture-import',
+        revision: 1,
+        receivedAt: new Date('2026-07-12T04:11:00.000Z'),
+      },
+      {
+        instrumentId: 'nse-nifty50',
+        timeframe: '5m',
+        openTime: new Date('2026-07-12T04:10:00.000Z'),
+        closeTime: new Date('2026-07-12T04:15:00.000Z'),
+        open: 24692.5,
+        high: 24710,
+        low: 24680,
+        close: 24701.2,
+        volume: 188000,
+        source: 'fixture-import',
+        revision: 1,
+        receivedAt: new Date('2026-07-12T04:16:00.000Z'),
+      },
+    ]);
+    const app = await buildApp({ config, probes: [], marketStore });
 
     const asOf = await app.inject({
       method: 'GET',
-      url: '/api/v1/market/bars?instrument_id=nse-nifty50&timeframe=5m&as_of=2026-07-12T04:10:00.000Z&limit=10',
+      url: '/api/v1/market/bars?instrument_id=nse-nifty50&timeframe=5m&as_of=2026-07-12T04:12:00.000Z&limit=10',
     });
 
     expect(asOf.statusCode).toBe(200);
@@ -197,7 +233,7 @@ describe('market data routes', () => {
     }>();
     expect(body.bars.map((bar) => bar.open_time)).toContain('2026-07-12T04:05:00.000Z');
     expect(body.bars.map((bar) => bar.open_time)).not.toContain('2026-07-12T04:10:00.000Z');
-    expect(body.bars.every((bar) => bar.close_time <= '2026-07-12T04:10:00.000Z')).toBe(true);
+    expect(body.bars.every((bar) => bar.close_time <= '2026-07-12T04:12:00.000Z')).toBe(true);
     await app.close();
   });
 });

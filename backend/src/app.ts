@@ -4,6 +4,7 @@ import type { AppConfig } from './config.js';
 import { AuthService } from './application/auth-service.js';
 import { CheckReadiness } from './application/check-readiness.js';
 import type { DependencyProbe } from './domain/health.js';
+import type { MarketDataStore } from './domain/market.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
 import { registerIndicatorRoutes } from './infrastructure/http/indicator-routes.js';
 import { registerMarketRoutes } from './infrastructure/http/market-routes.js';
@@ -11,6 +12,7 @@ import { registerRegimeRoutes } from './infrastructure/http/regime-routes.js';
 import { InMemoryIdentityStore } from './infrastructure/identity/in-memory-identity-store.js';
 import { PostgresIdentityStore } from './infrastructure/identity/postgres-identity-store.js';
 import { InMemoryMarketDataStore } from './infrastructure/market/in-memory-market-data-store.js';
+import { PostgresMarketDataStore } from './infrastructure/market/postgres-market-data-store.js';
 import { OpaqueSecretGenerator } from './infrastructure/security/opaque-secret-generator.js';
 import { ScryptPasswordHasher } from './infrastructure/security/scrypt-password-hasher.js';
 
@@ -18,7 +20,7 @@ export type AppDependencies = Readonly<{
   config: AppConfig;
   probes: readonly DependencyProbe[];
   authService?: AuthService;
-  marketStore?: InMemoryMarketDataStore;
+  marketStore?: MarketDataStore;
 }>;
 
 export async function buildApp({
@@ -44,7 +46,15 @@ export async function buildApp({
   const auth =
     authService ??
     new AuthService(ownedIdentityStore, new ScryptPasswordHasher(), new OpaqueSecretGenerator());
-  const market = marketStore ?? new InMemoryMarketDataStore();
+  const ownedMarketStore =
+    config.dependencyMode === 'external' && config.databaseUrl
+      ? new PostgresMarketDataStore(config.databaseUrl)
+      : new InMemoryMarketDataStore();
+  const closeOwnedMarketStore =
+    ownedMarketStore instanceof PostgresMarketDataStore
+      ? () => ownedMarketStore.close()
+      : () => Promise.resolve();
+  const market = marketStore ?? ownedMarketStore;
 
   app.get('/health/live', () => ({ status: 'alive', timestamp: new Date().toISOString() }));
   app.get('/health/ready', async (_request, reply) => {
@@ -60,6 +70,7 @@ export async function buildApp({
     await Promise.all([
       ...probes.map((probe) => probe.close()),
       authService ? Promise.resolve() : closeOwnedIdentityStore(),
+      marketStore ? Promise.resolve() : closeOwnedMarketStore(),
     ]);
   });
   return app;

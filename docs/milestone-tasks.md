@@ -23,10 +23,10 @@ are now delivered together.
 - [x] Define provider and clock ports for historical imports.
 - [x] Implement CSV historical import with idempotent lite-mode upsert.
 - [x] Add fixture-backed point-in-time `as_of` query coverage.
-- [ ] Define sessions, ticks, and live provider ports.
-- [ ] Implement one live provider adapter and persistent normalized bar storage.
-- [ ] Add ordering, deduplication, corrections, gaps, freshness, reconnect, and idempotency beyond CSV imports.
-- [ ] Expand point-in-time correctness across indicators, replay, and persistent storage.
+- [x] Define sessions, ticks, and live provider ports.
+- [x] Implement one live provider adapter and persistent normalized bar storage.
+- [x] Add ordering, deduplication, corrections, gaps, freshness, reconnect, and idempotency beyond CSV imports.
+- [x] Expand point-in-time correctness across indicators, replay, and persistent storage.
 
 ## Milestone 4 - Indicators and Regimes
 

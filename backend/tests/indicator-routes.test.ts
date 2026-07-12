@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import type { AppConfig } from '../src/config.js';
+import type { Bar } from '../src/domain/market.js';
+import { InMemoryMarketDataStore } from '../src/infrastructure/market/in-memory-market-data-store.js';
 
 const config: AppConfig = {
   nodeEnv: 'test',
@@ -16,9 +18,14 @@ const config: AppConfig = {
 
 describe('indicator routes', () => {
   it('calculates EMA, RSI, and ATR from point-in-time bars', async () => {
-    const app = await buildApp({ config, probes: [] });
-    const csv = await readFile(new URL('./fixtures/nifty50-5m.csv', import.meta.url), 'utf8');
-    await app.inject({ method: 'POST', url: '/api/v1/market/bars/import', payload: { csv } });
+    const marketStore = new InMemoryMarketDataStore();
+    await marketStore.upsertBars([
+      bar('2026-07-12T03:55:00.000Z', 24659.8, '2026-07-12T04:01:00.000Z'),
+      bar('2026-07-12T04:00:00.000Z', 24674.4, '2026-07-12T04:06:00.000Z'),
+      bar('2026-07-12T04:05:00.000Z', 24692.5, '2026-07-12T04:11:00.000Z'),
+      bar('2026-07-12T04:10:00.000Z', 24701.2, '2026-07-12T04:15:00.000Z'),
+    ]);
+    const app = await buildApp({ config, probes: [], marketStore });
 
     const response = await app.inject({
       method: 'GET',
@@ -55,3 +62,21 @@ describe('indicator routes', () => {
     await app.close();
   });
 });
+
+function bar(openTimeIso: string, close: number, receivedAtIso: string): Bar {
+  const openTime = new Date(openTimeIso);
+  return {
+    instrumentId: 'nse-nifty50',
+    timeframe: '5m',
+    openTime,
+    closeTime: new Date(openTime.getTime() + 5 * 60 * 1000),
+    open: close - 10,
+    high: close + 15,
+    low: close - 20,
+    close,
+    volume: 1000,
+    source: 'indicator-fixture',
+    revision: 1,
+    receivedAt: new Date(receivedAtIso),
+  };
+}

@@ -68,13 +68,16 @@ export class InMemoryMarketDataStore implements MarketDataStore {
   }
 
   listBars(query: BarQuery): Promise<readonly Bar[]> {
-    const filtered = [...this.barsByKey.values()]
+    const candidates = [...this.barsByKey.values()]
       .filter((candidate) => candidate.instrumentId === query.instrumentId)
       .filter((candidate) => candidate.timeframe === query.timeframe)
       .filter((candidate) => !query.from || candidate.openTime >= query.from)
       .filter((candidate) => !query.to || candidate.openTime <= query.to)
       .filter((candidate) => !query.asOf || candidate.closeTime <= query.asOf)
-      .sort((left, right) => left.openTime.getTime() - right.openTime.getTime());
+      .filter((candidate) => !query.asOf || candidate.receivedAt <= query.asOf);
+    const filtered = [...latestKnownRevisions(candidates)].sort(
+      (left, right) => left.openTime.getTime() - right.openTime.getTime(),
+    );
     return Promise.resolve(filtered.slice(-query.limit));
   }
 
@@ -139,6 +142,26 @@ function barKey(bar: Bar): string {
     bar.source,
     String(bar.revision),
   ].join('|');
+}
+
+function revisionKey(bar: Bar): string {
+  return [bar.instrumentId, bar.timeframe, bar.openTime.toISOString(), bar.source].join('|');
+}
+
+function latestKnownRevisions(bars: readonly Bar[]): readonly Bar[] {
+  const latestByKey = new Map<string, Bar>();
+  for (const bar of bars) {
+    const key = revisionKey(bar);
+    const current = latestByKey.get(key);
+    if (
+      !current ||
+      bar.revision > current.revision ||
+      (bar.revision === current.revision && bar.receivedAt > current.receivedAt)
+    ) {
+      latestByKey.set(key, bar);
+    }
+  }
+  return [...latestByKey.values()];
 }
 
 function bar(
