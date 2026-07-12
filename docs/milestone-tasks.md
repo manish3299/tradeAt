@@ -40,10 +40,10 @@ are now delivered together.
 
 ## Milestone 5 - Decision Engine v1
 
-- [ ] Implement data, regime, setup, evidence, risk/target, and confidence gates.
-- [ ] Produce long/short/abstain with entry zone, stop, targets, R, vetoes, and reasons.
-- [ ] Add configurable weights, risk limits, conservative targets, and immutable versions.
-- [ ] Prove deterministic decisions and point-in-time correctness.
+- [x] Implement data, regime, setup, evidence, risk/target, and confidence gates.
+- [x] Produce long/short/abstain with entry zone, stop, targets, R, vetoes, and reasons.
+- [x] Add configurable weights, risk limits, conservative targets, and immutable versions.
+- [x] Prove deterministic decisions and point-in-time correctness.
 
 ## Milestone 6 - Replay, Backtest, and Statistics
 
