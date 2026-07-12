@@ -29,6 +29,7 @@ TradeAt helps a trader answer: what is happening, why does it matter, what evide
 - Explainable decision engine with calibrated confidence.
 - Live dashboard with freshness and health states.
 - Trade journal with immutable event history.
+- Paper trading with deterministic simulated orders, fills, positions, and account equity.
 - Deterministic replay using the same calculation contracts as live mode.
 - Point-in-time historical memory and similarity search.
 - Optional, gated ML models evaluated against deterministic baselines.
@@ -42,6 +43,7 @@ TradeAt helps a trader answer: what is happening, why does it matter, what evide
 - **Signal:** plugin output expressing evidence, direction, strength, and metadata.
 - **Decision:** versioned aggregation of signals at a point in time.
 - **Trade:** journal entity representing a planned or actual position lifecycle.
+- **Paper account:** simulated cash, equity, orders, fills, and positions that never reach a broker.
 - **R:** profit or loss divided by initial risk; undefined when initial risk is invalid.
 - **Replay:** deterministic delivery of historical events through live-compatible contracts.
 - **Regime:** versioned classification of market conditions.
@@ -55,6 +57,7 @@ TradeAt helps a trader answer: what is happening, why does it matter, what evide
 - All user-owned records enforce tenant ownership at service and database boundaries.
 - Replay never reads future observations.
 - A decision is immutable after publication; recomputation creates a new version.
+- Paper activity is always labeled and stored separately from manually recorded or real activity.
 - Idempotency keys protect ingestion and mutation APIs where retries are expected.
 
 ## Quality targets for v1
@@ -77,6 +80,7 @@ TradeAt helps a trader answer: what is happening, why does it matter, what evide
 ## v1 non-goals
 
 - Autonomous or high-frequency order execution.
+- Submission of real-money orders; v1 execution is simulation-only.
 - Custody of funds or broker credentials beyond read-only integrations.
 - Social trading, copy trading, or public strategy marketplace.
 - Claims of guaranteed profitability.
