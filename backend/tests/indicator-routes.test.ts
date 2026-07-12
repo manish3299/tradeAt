@@ -34,7 +34,18 @@ describe('indicator routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json<{
-      values: Array<{ kind: string; observed_at: string; value: number; input_bars: number }>;
+      values: Array<{
+        kind: string;
+        definition_id: string;
+        definition_version: string;
+        configuration_hash: string;
+        observed_at: string;
+        value?: number;
+        quality: string;
+        input_bars: number;
+        missing_bars: number;
+        warnings: string[];
+      }>;
     }>();
     expect(body.values).toEqual(
       expect.arrayContaining([
@@ -43,7 +54,16 @@ describe('indicator routes', () => {
         expect.objectContaining({ kind: 'atr', observed_at: '2026-07-12T04:15:00.000Z' }),
       ]),
     );
-    expect(body.values.every((value) => Number.isFinite(value.value))).toBe(true);
+    expect(
+      body.values.every(
+        (value) =>
+          value.definition_version === '1.0.0' &&
+          value.configuration_hash.length === 64 &&
+          value.quality === 'ok' &&
+          value.missing_bars === 0 &&
+          Number.isFinite(value.value),
+      ),
+    ).toBe(true);
     await app.close();
   });
 
@@ -58,7 +78,28 @@ describe('indicator routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ values: [] });
+    expect(response.json()).toMatchObject({
+      values: [
+        {
+          kind: 'ema',
+          quality: 'insufficient_data',
+          missing_bars: 10,
+          warnings: ['Need 10 closed bars for ema, received 0.'],
+        },
+        {
+          kind: 'rsi',
+          quality: 'insufficient_data',
+          missing_bars: 11,
+          warnings: ['Need 11 closed bars for rsi, received 0.'],
+        },
+        {
+          kind: 'atr',
+          quality: 'insufficient_data',
+          missing_bars: 11,
+          warnings: ['Need 11 closed bars for atr, received 0.'],
+        },
+      ],
+    });
     await app.close();
   });
 });

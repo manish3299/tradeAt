@@ -49,9 +49,19 @@ function serializeIndicator(value: IndicatorValue) {
     instrument_id: value.instrumentId,
     timeframe: value.timeframe,
     period: value.period,
+    definition_id: value.definitionId,
+    definition_version: value.definitionVersion,
+    configuration_hash: value.configurationHash,
     observed_at: value.observedAt.toISOString(),
     value: value.value,
+    quality: value.quality,
     warmup_bars: value.warmupBars,
     input_bars: value.inputBars,
+    missing_bars: value.missingBars,
+    input_range: {
+      first_observed_at: value.inputRange.firstObservedAt?.toISOString(),
+      last_observed_at: value.inputRange.lastObservedAt?.toISOString(),
+    },
+    warnings: value.warnings,
   };
 }
