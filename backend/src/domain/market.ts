@@ -1,6 +1,7 @@
 export type AssetClass = 'equity' | 'crypto' | 'forex' | 'index' | 'futures';
 export type Timeframe = '1m' | '5m' | '15m' | '1h' | '1d';
 export type MarketDataStatus = 'fresh' | 'stale' | 'empty';
+export type TickKind = 'trade' | 'quote';
 
 export interface Clock {
   now(): Date;
@@ -31,6 +32,44 @@ export type Bar = Readonly<{
   source: string;
   revision: number;
   receivedAt: Date;
+}>;
+
+export type Tick = Readonly<{
+  instrumentId: string;
+  kind: TickKind;
+  observedAt: Date;
+  receivedAt: Date;
+  source: string;
+  sequence: string;
+  price?: number;
+  size?: number;
+  bid?: number;
+  ask?: number;
+}>;
+
+export type LiveMarketEvent = Readonly<{
+  eventId: string;
+  type: 'tick' | 'bar' | 'correction';
+  instrumentId: string;
+  observedAt: Date;
+  receivedAt: Date;
+  source: string;
+  payload: Tick | Bar;
+  replacesEventId?: string;
+}>;
+
+export type LiveSubscription = Readonly<{
+  instrumentIds: readonly string[];
+  onEvent(event: LiveMarketEvent): Promise<void> | void;
+  onState(state: LiveProviderState): Promise<void> | void;
+}>;
+
+export type LiveProviderState = Readonly<{
+  status: 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+  changedAt: Date;
+  attempt: number;
+  retryAt?: Date;
+  reason?: string;
 }>;
 
 export type MarketStatus = Readonly<{
@@ -75,4 +114,9 @@ export interface HistoricalBarProvider {
   ): ImportBarsResult & {
     bars: readonly Bar[];
   };
+}
+
+export interface LiveMarketProvider {
+  readonly source: string;
+  connect(subscription: LiveSubscription, signal: AbortSignal): Promise<void>;
 }

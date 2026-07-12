@@ -8,6 +8,13 @@
       "when": 1752250000000,
       "tag": "0000_platform_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783814400000,
+      "tag": "0001_market_storage",
+      "breakpoints": true
     }
   ]
 }

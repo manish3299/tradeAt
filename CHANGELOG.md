@@ -31,6 +31,10 @@ All notable changes are recorded here. The project follows semantic versioning o
 - Point-in-time trend/volatility regime classifier, `/api/v1/regimes`, tests, and frontend regime preview.
 - Signed-in frontend market data preview with instrument selection, freshness status, and recent 5-minute bars.
 - Strict TypeScript, ESLint, Prettier, Vitest, production build, and dependency-audit gates.
+- Venue-timezone market sessions, normalized tick/live-event contracts, and a cancellable live provider port.
+- Postgres-backed market data store for external mode and a deterministic replay live provider adapter.
+- Live market ingestion service with event ordering, idempotent deduplication, correction validation, gap tracking, freshness state, and reconnect retry handling.
+- Point-in-time market queries now require bars to be both closed and received by `as_of`, collapse duplicate revisions to the latest known revision, and cover indicator/regime no-lookahead behavior.
 
 ### Fixed
 
