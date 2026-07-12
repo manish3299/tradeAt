@@ -33,10 +33,10 @@ are now delivered together.
 - [x] Implement deterministic EMA, RSI, and ATR calculations.
 - [x] Expose point-in-time indicator API and signed-in preview.
 - [x] Add point-in-time trend and volatility regime classification.
-- [ ] Implement the plugin contract.
-- [ ] Add higher-timeframe trend and price structure classification.
-- [ ] Version inputs/configuration/outputs and define warm-up/missing-data behavior.
-- [ ] Add golden/property tests and prevent correlated evidence from being double-counted.
+- [x] Implement the plugin contract.
+- [x] Add higher-timeframe trend and price structure classification.
+- [x] Version inputs/configuration/outputs and define warm-up/missing-data behavior.
+- [x] Add golden/property tests and prevent correlated evidence from being double-counted.
 
 ## Milestone 5 - Decision Engine v1
 

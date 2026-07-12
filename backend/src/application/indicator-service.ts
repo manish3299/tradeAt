@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto';
 import type { IndicatorQuery, IndicatorValue } from '../domain/indicators.js';
 import type { Bar, MarketDataStore } from '../domain/market.js';
+
+const INDICATOR_DEFINITION_VERSION = '1.0.0';
 
 export class IndicatorService {
   constructor(private readonly market: MarketDataStore) {}
@@ -12,25 +15,14 @@ export class IndicatorService {
       asOf: query.asOf,
       limit: Math.max(maxPeriod * 4, 50),
     });
-    if (bars.length === 0) return [];
-
-    const values: IndicatorValue[] = [];
     const ema = calculateEma(bars, query.periods.ema);
-    if (ema !== undefined) {
-      values.push(toValue('ema', query, query.periods.ema, bars, ema, query.periods.ema));
-    }
-
     const rsi = calculateRsi(bars, query.periods.rsi);
-    if (rsi !== undefined) {
-      values.push(toValue('rsi', query, query.periods.rsi, bars, rsi, query.periods.rsi + 1));
-    }
-
     const atr = calculateAtr(bars, query.periods.atr);
-    if (atr !== undefined) {
-      values.push(toValue('atr', query, query.periods.atr, bars, atr, query.periods.atr + 1));
-    }
-
-    return values;
+    return [
+      toValue('ema', query, query.periods.ema, bars, ema, query.periods.ema),
+      toValue('rsi', query, query.periods.rsi, bars, rsi, query.periods.rsi + 1),
+      toValue('atr', query, query.periods.atr, bars, atr, query.periods.atr + 1),
+    ];
   }
 }
 
@@ -72,18 +64,34 @@ function toValue(
   query: IndicatorQuery,
   period: number,
   bars: readonly Bar[],
-  value: number,
+  value: number | undefined,
   warmupBars: number,
 ): IndicatorValue {
+  const missingBars = Math.max(0, warmupBars - bars.length);
+  const firstObservedAt = bars[0]?.closeTime;
+  const lastObservedAt = bars.at(-1)?.closeTime;
   return {
     kind,
+    definitionId: `tradeat.${kind}`,
+    definitionVersion: INDICATOR_DEFINITION_VERSION,
+    configurationHash: hashConfiguration({ kind, period }),
     instrumentId: query.instrumentId,
     timeframe: query.timeframe,
     period,
-    observedAt: bars.at(-1)!.closeTime,
-    value,
+    observedAt: lastObservedAt ?? query.asOf,
+    ...(value !== undefined ? { value } : {}),
+    quality: value === undefined ? 'insufficient_data' : 'ok',
     warmupBars,
     inputBars: bars.length,
+    missingBars,
+    inputRange: {
+      ...(firstObservedAt ? { firstObservedAt } : {}),
+      ...(lastObservedAt ? { lastObservedAt } : {}),
+    },
+    warnings:
+      value === undefined
+        ? [`Need ${warmupBars} closed bars for ${kind}, received ${bars.length}.`]
+        : [],
   };
 }
 
@@ -93,4 +101,8 @@ function average(values: readonly number[]): number {
 
 function round(value: number): number {
   return Number(value.toFixed(4));
+}
+
+function hashConfiguration(configuration: Readonly<Record<string, string | number>>): string {
+  return createHash('sha256').update(JSON.stringify(configuration)).digest('hex');
 }

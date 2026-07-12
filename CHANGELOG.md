@@ -35,6 +35,10 @@ All notable changes are recorded here. The project follows semantic versioning o
 - Postgres-backed market data store for external mode and a deterministic replay live provider adapter.
 - Live market ingestion service with event ordering, idempotent deduplication, correction validation, gap tracking, freshness state, and reconnect retry handling.
 - Point-in-time market queries now require bars to be both closed and received by `as_of`, collapse duplicate revisions to the latest known revision, and cover indicator/regime no-lookahead behavior.
+- Plugin manifest, registry, configuration validation, deterministic execution context, run receipts, and provenance contract.
+- Higher-timeframe trend and recent price-structure classification for regime analysis.
+- Versioned indicator/regime outputs with configuration hashes, input ranges, quality states, and explicit warm-up/missing-data metadata.
+- Golden indicator vectors, property-style indicator invariants, and evidence-group collapse to prevent correlated signal double-counting.
 
 ### Fixed
 
