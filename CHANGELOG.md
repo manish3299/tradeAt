@@ -39,6 +39,10 @@ All notable changes are recorded here. The project follows semantic versioning o
 - Higher-timeframe trend and recent price-structure classification for regime analysis.
 - Versioned indicator/regime outputs with configuration hashes, input ranges, quality states, and explicit warm-up/missing-data metadata.
 - Golden indicator vectors, property-style indicator invariants, and evidence-group collapse to prevent correlated signal double-counting.
+- Decision gate service covering data, regime, setup, evidence, risk/target, and confidence vetoes.
+- Decision publication service producing long/short/abstain outputs with entry zones, stops, targets, R, vetoes, and reasons.
+- Versioned decision policy with configurable evidence weights, risk limits, conservative target selection, and policy hashes.
+- Decision orchestration with deterministic identity checks and point-in-time decision correctness across late market revisions.
 
 ### Fixed
 
