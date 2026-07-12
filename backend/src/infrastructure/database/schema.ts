@@ -100,3 +100,51 @@ export const auditEvents = pgTable(
     index('audit_events_user_time_idx').on(table.userId, table.occurredAt),
   ],
 );
+
+export const instruments = pgTable(
+  'instruments',
+  {
+    id: text('id').primaryKey(),
+    symbol: text('symbol').notNull(),
+    name: text('name').notNull(),
+    venue: text('venue').notNull(),
+    providerSymbol: text('provider_symbol').notNull(),
+    assetClass: text('asset_class').notNull(),
+    currency: text('currency').notNull(),
+    timezone: text('timezone').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('instruments_provider_identity_unique').on(
+      table.venue,
+      table.providerSymbol,
+      table.assetClass,
+    ),
+  ],
+);
+
+export const bars = pgTable(
+  'bars',
+  {
+    instrumentId: text('instrument_id')
+      .notNull()
+      .references(() => instruments.id, { onDelete: 'cascade' }),
+    timeframe: text('timeframe').notNull(),
+    openTime: timestamp('open_time', { withTimezone: true }).notNull(),
+    closeTime: timestamp('close_time', { withTimezone: true }).notNull(),
+    open: text('open').notNull(),
+    high: text('high').notNull(),
+    low: text('low').notNull(),
+    close: text('close').notNull(),
+    volume: text('volume').notNull(),
+    source: text('source').notNull(),
+    revision: text('revision').notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.instrumentId, table.timeframe, table.openTime, table.source, table.revision],
+    }),
+    index('bars_instrument_time_idx').on(table.instrumentId, table.openTime),
+  ],
+);

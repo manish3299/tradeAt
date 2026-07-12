@@ -33,6 +33,7 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 - Instrument uniqueness: `(venue, provider_symbol, asset_class)`.
 - Bar uniqueness: `(instrument_id, timeframe, open_time, source, revision)`.
 - Derived value uniqueness: `(instrument_id, timeframe, observed_at, definition_id, definition_version, config_hash)`.
+- The first M3 schema slice includes `instruments` and `bars`; prices and volume are stored as decimal text until numeric precision rules are finalized per provider.
 
 ## Indexing and partitioning
 

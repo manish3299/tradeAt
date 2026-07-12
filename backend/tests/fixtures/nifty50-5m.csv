@@ -1,0 +1,4 @@
+instrument_id,timeframe,open_time,open,high,low,close,volume,source,revision
+nse-nifty50,5m,2026-07-12T04:00:00.000Z,24659.8,24682.1,24650.0,24674.4,210000,fixture-import,1
+nse-nifty50,5m,2026-07-12T04:05:00.000Z,24674.4,24695.0,24660.0,24692.5,151000,fixture-import,1
+nse-nifty50,5m,2026-07-12T04:10:00.000Z,24692.5,24710.0,24680.0,24701.2,188000,fixture-import,1

@@ -24,6 +24,12 @@ All notable changes are recorded here. The project follows semantic versioning o
 - PostgreSQL identity schema and persistent identity store for external dependency mode.
 - Auth service expiry tests for access and refresh tokens.
 - Backend Vitest configuration tuned for low-end local machines while preserving real password hashing behavior.
+- Market data domain contracts, lite-mode instruments/bars store, `/api/v1/instruments`, `/api/v1/market/bars`, and `/api/v1/market/status`.
+- CSV historical bar provider and `/api/v1/market/bars/import` for idempotent lite-mode candle imports.
+- Point-in-time `as_of` market bar queries plus a fixture-backed no-lookahead test.
+- Point-in-time EMA, RSI, and ATR indicator service, `/api/v1/indicators`, tests, and frontend indicator preview.
+- Point-in-time trend/volatility regime classifier, `/api/v1/regimes`, tests, and frontend regime preview.
+- Signed-in frontend market data preview with instrument selection, freshness status, and recent 5-minute bars.
 - Strict TypeScript, ESLint, Prettier, Vitest, production build, and dependency-audit gates.
 
 ### Fixed

@@ -17,15 +17,24 @@ are now delivered together.
 
 ## Milestone 3 - Market Data and Pipeline
 
-- [ ] Define instruments, sessions, ticks, bars, provider and clock ports.
-- [ ] Implement one provider adapter, historical import, and normalized bar storage.
-- [ ] Add ordering, deduplication, corrections, gaps, freshness, reconnect, and idempotency.
-- [ ] Expose bounded history/status APIs and prove point-in-time data correctness.
+- [x] Define instruments, bars, market status, and market data store contracts.
+- [x] Implement lite-mode sample instruments and normalized bar storage.
+- [x] Expose bounded history/status APIs and a signed-in frontend preview.
+- [x] Define provider and clock ports for historical imports.
+- [x] Implement CSV historical import with idempotent lite-mode upsert.
+- [x] Add fixture-backed point-in-time `as_of` query coverage.
+- [ ] Define sessions, ticks, and live provider ports.
+- [ ] Implement one live provider adapter and persistent normalized bar storage.
+- [ ] Add ordering, deduplication, corrections, gaps, freshness, reconnect, and idempotency beyond CSV imports.
+- [ ] Expand point-in-time correctness across indicators, replay, and persistent storage.
 
 ## Milestone 4 - Indicators and Regimes
 
-- [ ] Implement the plugin contract and deterministic EMA, RSI, and ATR.
-- [ ] Add higher-timeframe trend, price structure, volatility, and regime classification.
+- [x] Implement deterministic EMA, RSI, and ATR calculations.
+- [x] Expose point-in-time indicator API and signed-in preview.
+- [x] Add point-in-time trend and volatility regime classification.
+- [ ] Implement the plugin contract.
+- [ ] Add higher-timeframe trend and price structure classification.
 - [ ] Version inputs/configuration/outputs and define warm-up/missing-data behavior.
 - [ ] Add golden/property tests and prevent correlated evidence from being double-counted.
 

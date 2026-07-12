@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   fetchApiHealth,
+  fetchIndicators,
+  fetchInstruments,
+  fetchMarketBars,
+  fetchMarketStatus,
   fetchMe,
+  fetchRegime,
   login,
   logout,
   registerAccount,
   type ApiHealth,
   type AuthSession,
+  type IndicatorValue,
+  type Instrument,
+  type MarketBar,
+  type MarketStatus,
   type Principal,
+  type RegimeClassification,
 } from './api';
 import './styles.css';
 
@@ -32,6 +42,12 @@ export function App() {
   const [workspaceName, setWorkspaceName] = useState('TradeAt Desk');
   const [message, setMessage] = useState('Create a local workspace to start the MVP flow.');
   const [isSubmitting, setSubmitting] = useState(false);
+  const [instruments, setInstruments] = useState<readonly Instrument[]>([]);
+  const [selectedInstrumentId, setSelectedInstrumentId] = useState('nse-nifty50');
+  const [bars, setBars] = useState<readonly MarketBar[]>([]);
+  const [marketStatus, setMarketStatus] = useState<MarketStatus | undefined>();
+  const [indicatorValues, setIndicatorValues] = useState<readonly IndicatorValue[]>([]);
+  const [regime, setRegime] = useState<RegimeClassification | undefined>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -52,6 +68,35 @@ export function App() {
         localStorage.removeItem(sessionKey);
       });
   }, [session?.tokens.accessToken]);
+
+  useEffect(() => {
+    if (!session) return;
+    void fetchInstruments()
+      .then((nextInstruments) => {
+        setInstruments(nextInstruments);
+        if (!nextInstruments.some((instrument) => instrument.id === selectedInstrumentId)) {
+          setSelectedInstrumentId(nextInstruments[0]?.id ?? '');
+        }
+      })
+      .catch(() => setMessage('Market instruments are not available yet.'));
+  }, [session, selectedInstrumentId]);
+
+  useEffect(() => {
+    if (!session || !selectedInstrumentId) return;
+    void Promise.all([
+      fetchMarketBars(selectedInstrumentId),
+      fetchMarketStatus(selectedInstrumentId),
+      fetchIndicators(selectedInstrumentId),
+      fetchRegime(selectedInstrumentId),
+    ])
+      .then(([nextBars, nextStatus, nextIndicators, nextRegime]) => {
+        setBars(nextBars);
+        setMarketStatus(nextStatus);
+        setIndicatorValues(nextIndicators);
+        setRegime(nextRegime);
+      })
+      .catch(() => setMessage('Market data is not available yet.'));
+  }, [session, selectedInstrumentId]);
 
   const targetCopy = useMemo(
     () =>
@@ -138,6 +183,60 @@ export function App() {
                 <dd>Market data pipeline</dd>
               </div>
             </dl>
+            <section className="market-panel" aria-label="Market data preview">
+              <div className="market-toolbar">
+                <div>
+                  <p className="eyebrow">Market data</p>
+                  <h3>Sample 5m bars</h3>
+                </div>
+                <select
+                  value={selectedInstrumentId}
+                  onChange={(event) => setSelectedInstrumentId(event.target.value)}
+                >
+                  {instruments.map((instrument) => (
+                    <option key={instrument.id} value={instrument.id}>
+                      {instrument.symbol}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="market-status">
+                {marketStatus
+                  ? `${marketStatus.status.toUpperCase()} | ${marketStatus.source} | gaps ${marketStatus.gap_count}`
+                  : 'Checking market freshness'}
+              </p>
+              <div className="bars-table" role="table" aria-label="Recent bars">
+                <div role="row">
+                  <span role="columnheader">Time</span>
+                  <span role="columnheader">Close</span>
+                  <span role="columnheader">Volume</span>
+                </div>
+                {bars.map((bar) => (
+                  <div role="row" key={bar.open_time}>
+                    <span role="cell">{formatTime(bar.open_time)}</span>
+                    <span role="cell">{bar.close.toLocaleString()}</span>
+                    <span role="cell">{bar.volume.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="indicator-strip" aria-label="Indicators">
+                {indicatorValues.map((indicator) => (
+                  <div key={`${indicator.kind}-${indicator.period}`}>
+                    <span>{indicator.kind.toUpperCase()}</span>
+                    <strong>{indicator.value.toLocaleString()}</strong>
+                  </div>
+                ))}
+              </div>
+              {regime ? (
+                <div className="regime-card" aria-label="Regime">
+                  <span>REGIME</span>
+                  <strong>
+                    {regime.trend} / {regime.volatility}
+                  </strong>
+                  <p>{regime.reasons[0]}</p>
+                </div>
+              ) : null}
+            </section>
             <button
               className="button button--secondary"
               type="button"
@@ -209,6 +308,13 @@ function readStoredSession(): StoredSession | undefined {
   } catch {
     return undefined;
   }
+}
+
+function formatTime(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function formatDate(value: string): string {

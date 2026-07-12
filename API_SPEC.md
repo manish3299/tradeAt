@@ -17,7 +17,7 @@
 | `GET /me`                                                                            | Current user and workspace context             |
 | `GET /instruments`, `GET/POST /watchlists`                                           | Instrument discovery and configuration         |
 | `GET /market/bars`, `GET /market/status`                                             | Historical data and freshness                  |
-| `GET /indicators`, `GET /signals`                                                    | Versioned analytical outputs                   |
+| `GET /indicators`, `GET /regimes`, `GET /signals`                                    | Versioned analytical outputs                   |
 | `GET /decisions`, `GET /decisions/{id}`                                              | Decisions and contributions                    |
 | `GET/POST /trades`, `PATCH /trades/{id}`, `POST /trades/{id}/events`                 | Journal lifecycle                              |
 | `GET/POST /paper/accounts`, `POST /paper/accounts/{id}/reset`                        | Paper account lifecycle                        |
@@ -28,6 +28,15 @@
 | `GET /plugins`, `POST /plugins/install`, `PATCH /plugins/{id}`                       | Plugin lifecycle                               |
 
 OpenAPI is generated and contract-tested once implementation begins.
+
+## Implemented market data slice
+
+- `GET /api/v1/instruments` returns normalized lite-mode instruments.
+- `GET /api/v1/market/bars?instrument_id=...&timeframe=5m&limit=...` returns bounded normalized bars. Use `as_of=...` to return only bars that had closed by that timestamp.
+- `GET /api/v1/market/status?instrument_id=...&timeframe=5m` returns freshness, latest bar time, gap count, and source.
+- `POST /api/v1/market/bars/import` accepts CSV candles for lite-mode historical import. Required headers are `instrument_id,timeframe,open_time,open,high,low,close,volume`; optional `source` and `revision` make imports idempotent.
+- `GET /api/v1/indicators?instrument_id=...&timeframe=5m&as_of=...` calculates point-in-time EMA, RSI, and ATR values from closed bars only.
+- `GET /api/v1/regimes?instrument_id=...&timeframe=5m&as_of=...` classifies trend and volatility with explanation reasons from point-in-time indicators.
 
 ## WebSocket
 
