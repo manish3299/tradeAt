@@ -17,6 +17,13 @@ All notable changes are recorded here. The project follows semantic versioning o
 - Optional Docker Compose development dependencies for external PostgreSQL/Redis validation on capable machines.
 - Versioned decision policy defining data/regime/setup gates, independent evidence groups, bounded Kronos evidence, calibrated confidence, and risk-aware target validation.
 - Paper-trading specification covering simulated accounts, orders, fills, positions, ledger reconciliation, deterministic execution assumptions, risk controls, APIs, UI safety labeling, and separated statistics.
+- Milestone-by-milestone implementation checklists and authentication milestone tracking.
+- Result-first milestone ordering with historical validation at Milestone 6, forward paper validation at Milestone 7, and the complete MVP at Milestone 8.
+- Authentication domain, in-memory identity store, scrypt password hashing, opaque token generation, register/login/refresh/logout/`/me` APIs, and auth workspace UI.
+- In-memory auth rate limiting and tests for refresh-token reuse and repeated auth attempts.
+- PostgreSQL identity schema and persistent identity store for external dependency mode.
+- Auth service expiry tests for access and refresh tokens.
+- Backend Vitest configuration tuned for low-end local machines while preserving real password hashing behavior.
 - Strict TypeScript, ESLint, Prettier, Vitest, production build, and dependency-audit gates.
 
 ### Fixed
@@ -27,6 +34,7 @@ All notable changes are recorded here. The project follows semantic versioning o
 
 - Local development no longer requires Docker, PostgreSQL, or Redis.
 - Decision quality is explicitly measured by expectancy, calibration, drawdown, target-one outcomes, and abstention reasons instead of signal count alone.
+- Frontend visuals now use a minimal light day-mode palette with white surfaces, soft gray borders, restrained typography, and a single green accent.
 
 ### Known issues
 

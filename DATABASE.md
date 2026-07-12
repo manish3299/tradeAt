@@ -21,6 +21,13 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 | Learning      | `datasets`, `model_versions`, `model_evaluations`, `predictions`                           | Point-in-time feature provenance required.                                                  |
 | Operations    | `outbox_events`, `idempotency_keys`, `audit_events`                                        | Retention policy per category.                                                              |
 
+## Identity persistence
+
+- `users.email` is unique and stored normalized by the authentication service.
+- `sessions.access_token_hash` is unique; raw access tokens are returned once and never stored.
+- `refresh_tokens.token_hash` is primary-keyed, consumed on rotation/logout, and reused refresh tokens revoke all active sessions for that user.
+- `audit_events` records authentication actions with bounded metadata for operational review.
+
 ## Market keys
 
 - Instrument uniqueness: `(venue, provider_symbol, asset_class)`.

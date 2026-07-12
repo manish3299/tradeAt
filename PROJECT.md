@@ -32,4 +32,17 @@ Trading tools often separate market context, signal reasoning, journaling, repla
 
 ## Delivery strategy
 
-Build vertical, testable milestones. Authentication and platform foundations precede market ingestion; deterministic analytics precede decisions; decisions precede ML. Each milestone has an observable user outcome and exit criteria in `ROADMAP.md`.
+Build vertical, testable milestones. Authentication and trustworthy data precede
+deterministic analytics and decisions. Replay/backtesting then produces the first
+historical evidence, paper trading produces forward evidence on unseen data, and
+the dashboard completes the MVP. Historical memory and ML follow only after this
+baseline is measurable. Each milestone has an observable outcome and exit criteria
+in `ROADMAP.md`.
+
+## Current implementation status
+
+Milestone 2 authentication has the first working vertical slice: users can create
+a workspace, log in, rotate refresh tokens, log out, and load `/api/v1/me` in
+lite mode without Docker. External mode now has a PostgreSQL identity schema and
+persistent identity store. The remaining authentication slice is stricter
+cross-tenant authorization coverage once tenant-owned market resources exist.

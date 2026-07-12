@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .env
+.codex/
 *.log
 *.tsbuildinfo
 .DS_Store
