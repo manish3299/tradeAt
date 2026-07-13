@@ -29,6 +29,8 @@ describe('health routes', () => {
     const response = await app.inject({ method: 'GET', url: '/health/live' });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: 'alive' });
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
     await app.close();
   });
   it('reports degraded readiness when a dependency is down', async () => {

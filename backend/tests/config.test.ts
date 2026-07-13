@@ -30,4 +30,12 @@ describe('loadConfig', () => {
   it('rejects invalid ports', () => {
     expect(() => loadConfig({ ...valid, PORT: '70000' })).toThrow();
   });
+  it('refuses unsafe production dependency and logging modes', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(
+      'Production requires DEPENDENCY_MODE=external',
+    );
+    expect(() => loadConfig({ ...valid, NODE_ENV: 'production', LOG_LEVEL: 'silent' })).toThrow(
+      'Production logging cannot be silent',
+    );
+  });
 });

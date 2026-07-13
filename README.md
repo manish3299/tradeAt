@@ -44,7 +44,7 @@ Run the complete local quality gate with `npm run check`. Production-style backe
 
 ## Status
 
-Milestone 1 platform foundation is implemented. See [ROADMAP.md](ROADMAP.md) for verified status.
+Milestones 1 through 10 are implemented. Production release evidence remains tracked in [ROADMAP.md](ROADMAP.md) and [docs/release-checklist.md](docs/release-checklist.md).
 
 ## License
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Milestone 11 - Production hardening (in progress)
+
+- Added production-only dependency and logging safety checks, release revision disclosure, a bounded request body, no-store responses, and browser security headers.
+- Added security, privacy, operations, retention, rollback, known-issues, and release-evidence documentation.
+- Passed local lint, typecheck, 97 tests, production builds, high-severity dependency audit, and compiled-server readiness smoke testing.
+
 All notable changes are recorded here. The project follows semantic versioning once code releases begin.
 
 ## [Unreleased]

@@ -9,6 +9,7 @@ const environmentSchema = z.object({
   DATABASE_URL: z.string().url().startsWith('postgresql://').optional(),
   REDIS_URL: z.string().url().startsWith('redis://').optional(),
   DEPENDENCY_CHECK_TIMEOUT_MS: z.coerce.number().int().positive().max(10_000).default(1000),
+  RELEASE_REVISION: z.string().min(7).max(128).optional(),
 });
 
 export type AppConfig = Readonly<{
@@ -20,12 +21,19 @@ export type AppConfig = Readonly<{
   databaseUrl: string | undefined;
   redisUrl: string | undefined;
   dependencyCheckTimeoutMs: number;
+  releaseRevision?: string;
 }>;
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const value = environmentSchema.parse(source);
   if (value.DEPENDENCY_MODE === 'external' && (!value.DATABASE_URL || !value.REDIS_URL)) {
     throw new Error('DATABASE_URL and REDIS_URL are required when DEPENDENCY_MODE=external');
+  }
+  if (value.NODE_ENV === 'production' && value.DEPENDENCY_MODE !== 'external') {
+    throw new Error('Production requires DEPENDENCY_MODE=external');
+  }
+  if (value.NODE_ENV === 'production' && value.LOG_LEVEL === 'silent') {
+    throw new Error('Production logging cannot be silent');
   }
   return {
     nodeEnv: value.NODE_ENV,
@@ -36,5 +44,6 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     databaseUrl: value.DATABASE_URL,
     redisUrl: value.REDIS_URL,
     dependencyCheckTimeoutMs: value.DEPENDENCY_CHECK_TIMEOUT_MS,
+    ...(value.RELEASE_REVISION ? { releaseRevision: value.RELEASE_REVISION } : {}),
   };
 }

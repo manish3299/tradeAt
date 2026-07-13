@@ -16,11 +16,11 @@ Detailed implementation checklists are maintained in `docs/milestone-tasks.md`.
 | 8   | MVP dashboard                    | complete    | **MVP ready:** one usable interface for market state, decisions, replay results, paper trading, journal, and core analytics.        |
 | 9   | Historical memory                | complete    | Decisions show how comparable point-in-time setups performed previously.                                                            |
 | 10  | Strategy validation and learning | complete    | Immutable strategy/dataset versions are compared, monitored, and made approval-eligible through reproducible evidence gates.        |
-| 11  | Production polish and release    | not started | Security, accessibility, performance, restore, deployment, documentation, and release gates pass.                                   |
+| 11  | Production polish and release    | in progress | Local hardening and release-candidate gates pass; external restore, performance, and manual accessibility evidence remain.          |
 
 ## Current next action
 
-Start Milestone 11 production polish, operational validation, and release gates.
+Run Milestone 11 external PostgreSQL restore, production-like performance, and manual accessibility evidence before release approval.
 
 ## Delivery checkpoints
 
