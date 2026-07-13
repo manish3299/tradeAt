@@ -64,11 +64,11 @@ are now delivered together.
 
 ## Milestone 8 - MVP Dashboard
 
-- [ ] Build watchlist, chart, freshness/regime, indicator, and explainable decision panels.
-- [ ] Add replay controls/results, paper order ticket, positions, equity, and journal workflow.
-- [ ] Add core analytics with sample sizes, uncertainty, costs, and result-origin labels.
-- [ ] Cover loading/stale/error/reconnect states, responsive behavior, and accessibility.
-- [ ] Pass the end-to-end decision -> replay -> paper -> journal -> analytics journey.
+- [x] Build watchlist, chart, freshness/regime, indicator, and explainable decision panels.
+- [x] Add replay controls/results, paper order ticket, positions, equity, and journal workflow.
+- [x] Add core analytics with sample sizes, uncertainty, costs, and result-origin labels.
+- [x] Cover loading/stale/error/reconnect states, responsive behavior, and accessibility.
+- [x] Pass the end-to-end decision -> replay -> paper -> journal -> analytics journey.
 
 ## Milestone 9 - Historical Memory
 

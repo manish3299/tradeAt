@@ -7,6 +7,7 @@ import {
   fetchMarketStatus,
   fetchMe,
   fetchRegime,
+  fetchLatestDecision,
   login,
   logout,
   registerAccount,
@@ -15,6 +16,8 @@ import {
   submitPaperOrder,
   processPaperBar,
   fetchPaperSnapshot,
+  updatePaperJournal,
+  resetPaperAccount,
   type ApiHealth,
   type AuthSession,
   type IndicatorValue,
@@ -26,6 +29,7 @@ import {
   type ReplayResearchResult,
   type PaperAccount,
   type PaperSnapshot,
+  type ExplainableDecision,
 } from './api';
 import './styles.css';
 
@@ -67,6 +71,13 @@ export function App() {
   const [paperQuantity, setPaperQuantity] = useState(1);
   const [paperConfirmed, setPaperConfirmed] = useState(false);
   const [isPaperWorking, setPaperWorking] = useState(false);
+  const [decision, setDecision] = useState<ExplainableDecision | undefined>();
+  const [dataState, setDataState] = useState<
+    'loading' | 'ready' | 'empty' | 'error' | 'reconnecting'
+  >('loading');
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [journalNotes, setJournalNotes] = useState('');
+  const [journalTags, setJournalTags] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,20 +113,47 @@ export function App() {
 
   useEffect(() => {
     if (!session || !selectedInstrumentId) return;
+    let active = true;
+    setDataState(refreshVersion > 0 ? 'reconnecting' : 'loading');
     void Promise.all([
       fetchMarketBars(selectedInstrumentId),
       fetchMarketStatus(selectedInstrumentId),
       fetchIndicators(selectedInstrumentId),
       fetchRegime(selectedInstrumentId),
     ])
-      .then(([nextBars, nextStatus, nextIndicators, nextRegime]) => {
+      .then(async ([nextBars, nextStatus, nextIndicators, nextRegime]) => {
+        if (!active) return;
         setBars(nextBars);
         setMarketStatus(nextStatus);
         setIndicatorValues(nextIndicators);
         setRegime(nextRegime);
+        setDecision(undefined);
+        if (nextBars.length === 0) {
+          setDataState('empty');
+          return;
+        }
+        try {
+          const nextDecision = await fetchLatestDecision(
+            session.tokens.accessToken,
+            selectedInstrumentId,
+            nextBars.at(-1)!.received_at,
+          );
+          if (active) setDecision(nextDecision);
+        } catch {
+          if (active) setMessage('Decision evidence is partially unavailable.');
+        }
+        if (active) setDataState('ready');
       })
-      .catch(() => setMessage('Market data is not available yet.'));
-  }, [session, selectedInstrumentId]);
+      .catch(() => {
+        if (active) {
+          setDataState('error');
+          setMessage('Market data is not available yet.');
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [session, selectedInstrumentId, refreshVersion]);
 
   const targetCopy = useMemo(
     () =>
@@ -229,8 +267,52 @@ export function App() {
     }
   }
 
+  async function handleJournalSave(tradeId: string) {
+    const token = session?.tokens.accessToken;
+    if (!token || !paperAccount) return;
+    setPaperWorking(true);
+    try {
+      await updatePaperJournal(token, paperAccount.id, tradeId, {
+        notes: journalNotes,
+        tags: journalTags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      });
+      setPaperSnapshot(await fetchPaperSnapshot(token, paperAccount.id));
+      setMessage('PAPER journal notes and tags saved with audit history.');
+    } catch {
+      setMessage('Journal update could not be saved.');
+    } finally {
+      setPaperWorking(false);
+    }
+  }
+
+  async function handlePaperReset() {
+    const token = session?.tokens.accessToken;
+    if (
+      !token ||
+      !paperAccount ||
+      !window.confirm('Reset this PAPER account version? History will be retained.')
+    )
+      return;
+    setPaperWorking(true);
+    try {
+      await resetPaperAccount(token, paperAccount.id);
+      setPaperSnapshot(await fetchPaperSnapshot(token, paperAccount.id));
+      setMessage('PAPER account version reset; prior history remains available.');
+    } catch {
+      setMessage('PAPER account could not be reset.');
+    } finally {
+      setPaperWorking(false);
+    }
+  }
+
   return (
     <main>
+      <a className="skip-link" href="#dashboard-content">
+        Skip to dashboard content
+      </a>
       <header>
         <a className="brand" href="/" aria-label="TradeAt home">
           TRADE<span>AT</span>
@@ -241,18 +323,25 @@ export function App() {
         </span>
       </header>
 
-      <section className="workspace" aria-labelledby="title">
+      <section
+        className={session ? 'workspace workspace--dashboard' : 'workspace'}
+        aria-labelledby="title"
+      >
         <div className="intro">
-          <p className="eyebrow">Milestone 07</p>
-          <h1 id="title">Forward paper workspace</h1>
+          <p className="eyebrow">Milestone 08</p>
+          <h1 id="title">TradeAt MVP dashboard</h1>
           <p className="lede">
-            Keep historical replay research separate while collecting simulated forward results
-            through deterministic orders, fills, positions, ledger entries, and journal records.
+            One evidence-first workspace for market state, explainable decisions, replay research,
+            PAPER execution, journal records, and honest analytics.
           </p>
         </div>
 
         {session ? (
-          <section className="panel" aria-label="Signed in workspace">
+          <section
+            className="panel dashboard-shell"
+            id="dashboard-content"
+            aria-label="Signed in workspace"
+          >
             <p className="eyebrow">Active session</p>
             <h2>{session.principal.workspace.name}</h2>
             <dl className="session-grid">
@@ -270,63 +359,125 @@ export function App() {
               </div>
               <div>
                 <dt>Current milestone</dt>
-                <dd>Paper trading and journal</dd>
+                <dd>Unified MVP dashboard</dd>
               </div>
             </dl>
-            <section className="market-panel" aria-label="Market data preview">
-              <div className="market-toolbar">
-                <div>
-                  <p className="eyebrow">Market data</p>
-                  <h3>Sample 5m bars</h3>
-                </div>
-                <select
-                  value={selectedInstrumentId}
-                  onChange={(event) => setSelectedInstrumentId(event.target.value)}
+            <div
+              className={`surface-state surface-state--${dataState}`}
+              role="status"
+              aria-live="polite"
+            >
+              {dataState === 'loading' ? 'Loading bounded market context…' : null}
+              {dataState === 'reconnecting'
+                ? 'Reconnecting and resynchronizing market context…'
+                : null}
+              {dataState === 'empty' ? 'No closed bars are available for this instrument.' : null}
+              {dataState === 'error'
+                ? 'Market context failed to load. Previously shown data is not presented as live.'
+                : null}
+              {dataState === 'ready'
+                ? `${marketStatus?.status.toUpperCase() ?? 'UNKNOWN'} market context loaded.`
+                : null}
+              {dataState === 'error' || marketStatus?.gap_count ? (
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => setRefreshVersion((value) => value + 1)}
                 >
-                  {instruments.map((instrument) => (
-                    <option key={instrument.id} value={instrument.id}>
-                      {instrument.symbol}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className="market-status">
-                {marketStatus
-                  ? `${marketStatus.status.toUpperCase()} | ${marketStatus.source} | gaps ${marketStatus.gap_count}`
-                  : 'Checking market freshness'}
-              </p>
-              <div className="bars-table" role="table" aria-label="Recent bars">
-                <div role="row">
-                  <span role="columnheader">Time</span>
-                  <span role="columnheader">Close</span>
-                  <span role="columnheader">Volume</span>
-                </div>
-                {bars.map((bar) => (
-                  <div role="row" key={bar.open_time}>
-                    <span role="cell">{formatTime(bar.open_time)}</span>
-                    <span role="cell">{bar.close.toLocaleString()}</span>
-                    <span role="cell">{bar.volume.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="indicator-strip" aria-label="Indicators">
-                {indicatorValues.map((indicator) => (
-                  <div key={`${indicator.kind}-${indicator.period}`}>
-                    <span>{indicator.kind.toUpperCase()}</span>
-                    <strong>{indicator.value.toLocaleString()}</strong>
-                  </div>
-                ))}
-              </div>
-              {regime ? (
-                <div className="regime-card" aria-label="Regime">
-                  <span>REGIME</span>
-                  <strong>
-                    {regime.trend} / {regime.volatility}
-                  </strong>
-                  <p>{regime.reasons[0]}</p>
-                </div>
+                  Reconnect and resync
+                </button>
               ) : null}
-            </section>
+            </div>
+            <p className="message" aria-live="polite">
+              {message}
+            </p>
+            <nav className="watchlist" aria-label="Instrument watchlist">
+              {instruments.length ? (
+                instruments.map((instrument) => (
+                  <button
+                    key={instrument.id}
+                    type="button"
+                    aria-current={selectedInstrumentId === instrument.id ? 'true' : undefined}
+                    onClick={() => setSelectedInstrumentId(instrument.id)}
+                  >
+                    <span>{instrument.symbol}</span>
+                    <small>
+                      {instrument.venue} · {instrument.currency}
+                    </small>
+                  </button>
+                ))
+              ) : (
+                <p>No watchlist instruments yet.</p>
+              )}
+            </nav>
+            <div className="dashboard-grid">
+              <section className="market-panel" aria-label="Market data preview">
+                <div className="market-toolbar">
+                  <div>
+                    <p className="eyebrow">Market data</p>
+                    <h3>Sample 5m bars</h3>
+                  </div>
+                  <select
+                    value={selectedInstrumentId}
+                    onChange={(event) => setSelectedInstrumentId(event.target.value)}
+                  >
+                    {instruments.map((instrument) => (
+                      <option key={instrument.id} value={instrument.id}>
+                        {instrument.symbol}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="market-status">
+                  {marketStatus
+                    ? `${marketStatus.status.toUpperCase()} | ${marketStatus.source} | gaps ${marketStatus.gap_count}`
+                    : 'Checking market freshness'}
+                </p>
+                <PriceChart bars={bars} status={marketStatus?.status} />
+                <div className="bars-table" role="table" aria-label="Recent bars">
+                  <div role="row">
+                    <span role="columnheader">Time</span>
+                    <span role="columnheader">Close</span>
+                    <span role="columnheader">Volume</span>
+                  </div>
+                  {bars.map((bar) => (
+                    <div role="row" key={bar.open_time}>
+                      <span role="cell">{formatTime(bar.open_time)}</span>
+                      <span role="cell">{bar.close.toLocaleString()}</span>
+                      <span role="cell">{bar.volume.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="indicator-strip" aria-label="Indicators">
+                  {indicatorValues.map((indicator) => (
+                    <div key={`${indicator.kind}-${indicator.period}`}>
+                      <span>{indicator.kind.toUpperCase()}</span>
+                      <strong>{indicator.value.toLocaleString()}</strong>
+                    </div>
+                  ))}
+                </div>
+                {regime ? (
+                  <div className="regime-card" aria-label="Regime">
+                    <span>REGIME</span>
+                    <strong>
+                      {regime.trend} / {regime.volatility}
+                    </strong>
+                    <p>{regime.reasons[0]}</p>
+                  </div>
+                ) : null}
+              </section>
+              <DecisionCard
+                decision={decision}
+                regime={regime}
+                dataState={dataState}
+                onPrefill={(side) => {
+                  setPaperSide(side);
+                  setMessage(
+                    'Decision direction copied to the PAPER ticket. Review and confirm before submission.',
+                  );
+                }}
+              />
+            </div>
             <section className="replay-panel" aria-label="Historical replay research">
               <div className="market-toolbar">
                 <div>
@@ -401,14 +552,20 @@ export function App() {
               ) : (
                 <>
                   <dl className="metrics-grid paper-summary">
-                    <Metric label="Account" value={paperAccount.name} />
+                    <Metric
+                      label="Starting capital"
+                      value={`${paperAccount.startingBalance.toFixed(2)} ${paperAccount.currency}`}
+                    />
                     <Metric
                       label="Cash"
                       value={(
                         paperSnapshot?.accounts[0]?.cashBalance ?? paperAccount.cashBalance
                       ).toFixed(2)}
                     />
-                    <Metric label="Origin" value="PAPER only" />
+                    <Metric
+                      label="Equity"
+                      value={(paperSnapshot?.accounts[0]?.equity ?? paperAccount.equity).toFixed(2)}
+                    />
                   </dl>
                   <div className="replay-settings paper-ticket">
                     <label>
@@ -462,9 +619,92 @@ export function App() {
                         {trade.status}
                       </p>
                     ))}
+                    {paperSnapshot?.positions.map((position) => (
+                      <p key={position.instrumentId}>
+                        <strong>{position.instrumentId}</strong> · qty {position.quantity} · avg{' '}
+                        {position.averagePrice.toFixed(2)} · P&amp;L{' '}
+                        {position.realizedPnl.toFixed(2)}
+                      </p>
+                    ))}
+                    {paperSnapshot?.journal.at(-1) ? (
+                      <form
+                        className="journal-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void handleJournalSave(paperSnapshot.journal.at(-1)!.id);
+                        }}
+                      >
+                        <label>
+                          Journal notes
+                          <textarea
+                            value={journalNotes}
+                            onChange={(event) => setJournalNotes(event.target.value)}
+                            placeholder="What did the evidence show?"
+                          />
+                        </label>
+                        <label>
+                          Tags
+                          <input
+                            value={journalTags}
+                            onChange={(event) => setJournalTags(event.target.value)}
+                            placeholder="breakout, disciplined"
+                          />
+                        </label>
+                        <button className="button" type="submit" disabled={isPaperWorking}>
+                          Save journal entry
+                        </button>
+                      </form>
+                    ) : null}
+                    <button
+                      className="button button--secondary"
+                      type="button"
+                      disabled={isPaperWorking || paperSnapshot?.accounts[0]?.status === 'reset'}
+                      onClick={() => void handlePaperReset()}
+                    >
+                      Reset PAPER account version
+                    </button>
                   </div>
                 </>
               )}
+            </section>
+            <section className="replay-panel analytics-panel" aria-label="Core analytics">
+              <div className="market-toolbar">
+                <div>
+                  <p className="eyebrow">Analytics</p>
+                  <h3>Result integrity</h3>
+                </div>
+                <span className="origin-label">SAMPLES FIRST</span>
+              </div>
+              <dl className="metrics-grid">
+                <Metric
+                  label="Replay samples"
+                  value={String(replayResult?.statistics.overall.sample_size ?? 0)}
+                />
+                <Metric label="Paper trades" value={String(paperSnapshot?.journal.length ?? 0)} />
+                <Metric label="Paper fills" value={String(paperSnapshot?.fills.length ?? 0)} />
+                <Metric
+                  label="Replay expectancy"
+                  value={formatRatio(replayResult?.statistics.overall.expectancy_r, 'R')}
+                />
+                <Metric
+                  label="Replay drawdown"
+                  value={
+                    replayResult
+                      ? formatPercent(replayResult.statistics.overall.maximum_drawdown_percent)
+                      : '—'
+                  }
+                />
+                <Metric
+                  label="Replay costs"
+                  value={
+                    replayResult ? replayResult.statistics.overall.total_costs.toFixed(2) : '—'
+                  }
+                />
+              </dl>
+              <p className="result-note">
+                REPLAY and PAPER origins remain separate. No metric implies guaranteed or
+                brokerage-realized returns.
+              </p>
             </section>
             <button
               className="button button--secondary"
@@ -527,6 +767,131 @@ export function App() {
         )}
       </section>
     </main>
+  );
+}
+
+function PriceChart({
+  bars,
+  status,
+}: Readonly<{ bars: readonly MarketBar[]; status: MarketStatus['status'] | undefined }>) {
+  if (!bars.length) return <div className="empty-chart">No chart data available.</div>;
+  const closes = bars.map((bar) => bar.close);
+  const min = Math.min(...closes);
+  const max = Math.max(...closes);
+  const span = max - min || 1;
+  const points = closes
+    .map(
+      (close, index) =>
+        `${(index / Math.max(1, closes.length - 1)) * 100},${42 - ((close - min) / span) * 34}`,
+    )
+    .join(' ');
+  return (
+    <figure className="price-chart">
+      <svg
+        viewBox="0 0 100 48"
+        role="img"
+        aria-labelledby="price-chart-title price-chart-description"
+        preserveAspectRatio="none"
+      >
+        <title id="price-chart-title">Recent closing prices</title>
+        <desc id="price-chart-description">
+          {bars.length} bounded five-minute bars from {min.toFixed(2)} to {max.toFixed(2)}. Data
+          status is {status ?? 'unknown'}.
+        </desc>
+        <polyline
+          points={points}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <figcaption>
+        {bars.length} bars · low {min.toFixed(2)} · high {max.toFixed(2)} ·{' '}
+        {status === 'fresh' ? 'LIVE-ELIGIBLE' : 'DELAYED / STALE'}
+      </figcaption>
+    </figure>
+  );
+}
+
+function DecisionCard({
+  decision,
+  regime,
+  dataState,
+  onPrefill,
+}: Readonly<{
+  decision: ExplainableDecision | undefined;
+  regime: RegimeClassification | undefined;
+  dataState: string;
+  onPrefill(side: 'buy' | 'sell'): void;
+}>) {
+  return (
+    <section className="decision-card" aria-label="Explainable decision">
+      <div className="market-toolbar">
+        <div>
+          <p className="eyebrow">Decision</p>
+          <h3>Explainable point-in-time output</h3>
+        </div>
+        <span
+          className={`decision-direction decision-direction--${decision?.direction ?? 'pending'}`}
+        >
+          {decision?.direction.toUpperCase() ?? 'PENDING'}
+        </span>
+      </div>
+      {!decision ? (
+        <p className="market-status">
+          {dataState === 'ready'
+            ? 'Decision evidence is partially unavailable.'
+            : 'Waiting for bounded market evidence…'}
+        </p>
+      ) : (
+        <>
+          <dl className="decision-summary">
+            <Metric label="Score" value={decision.score.toFixed(2)} />
+            <Metric label="Confidence" value={formatPercent(decision.confidence)} />
+            <Metric
+              label="Regime"
+              value={`${regime?.trend ?? 'unknown'} / ${regime?.volatility ?? 'unknown'}`}
+            />
+          </dl>
+          <p className="decision-time">
+            Evaluated {formatDate(decision.evaluated_at)} · policy {decision.policy_version}
+          </p>
+          {decision.vetoes.length ? (
+            <div className="decision-veto" role="note">
+              <strong>Action withheld</strong>
+              {decision.vetoes.map((veto) => (
+                <p key={veto.code}>{veto.message}</p>
+              ))}
+            </div>
+          ) : null}
+          <details>
+            <summary>Evidence and gate details</summary>
+            <ol className="gate-list">
+              {decision.gates.map((gate) => (
+                <li key={gate.gate}>
+                  <span>{gate.gate.replace('_', ' ')}</span>
+                  <strong>{gate.status}</strong>
+                  <p>{gate.reasons[0]}</p>
+                </li>
+              ))}
+            </ol>
+            <code className="repro-id">
+              {decision.id}:{decision.policy_hash.slice(0, 12)}
+            </code>
+          </details>
+          {decision.direction !== 'abstain' ? (
+            <button
+              className="button"
+              type="button"
+              onClick={() => onPrefill(decision.direction === 'long' ? 'buy' : 'sell')}
+            >
+              Prefill PAPER ticket
+            </button>
+          ) : null}
+        </>
+      )}
+    </section>
   );
 }
 

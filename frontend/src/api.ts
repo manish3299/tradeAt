@@ -82,6 +82,27 @@ export type RegimeClassification = Readonly<{
   reasons: readonly string[];
 }>;
 
+export type ExplainableDecision = Readonly<{
+  id: string;
+  version: string;
+  instrument_id: string;
+  timeframe: string;
+  evaluated_at: string;
+  direction: 'long' | 'short' | 'abstain';
+  score: number;
+  confidence: number;
+  entry_zone?: { low: number; high: number };
+  stop?: number;
+  targets: readonly { label: string; price: number; rewardToRisk: number }[];
+  risk_r?: number;
+  reward_to_risk?: number;
+  vetoes: readonly { code: string; message: string }[];
+  reasons: readonly string[];
+  gates: readonly { gate: string; status: 'pass' | 'veto'; reasons: readonly string[] }[];
+  policy_version: string;
+  policy_hash: string;
+}>;
+
 export type ReplayRun = Readonly<{
   id: string;
   instrument_id: string;
@@ -282,6 +303,19 @@ export async function fetchRegime(instrumentId: string): Promise<RegimeClassific
   return body.regime;
 }
 
+export async function fetchLatestDecision(
+  accessToken: string,
+  instrumentId: string,
+  asOf: string,
+): Promise<ExplainableDecision> {
+  const params = new URLSearchParams({ instrument_id: instrumentId, timeframe: '5m', as_of: asOf });
+  const response = await fetch(`${baseUrl}/api/v1/decisions/latest?${params}`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+  return ((await response.json()) as { decision: ExplainableDecision }).decision;
+}
+
 export async function runHistoricalReplay(
   accessToken: string,
   input: Readonly<{
@@ -388,6 +422,24 @@ export async function fetchPaperSnapshot(
   });
   if (!response.ok) throw new Error(`Request failed with ${response.status}`);
   return ((await response.json()) as { snapshot: PaperSnapshot }).snapshot;
+}
+
+export async function updatePaperJournal(
+  accessToken: string,
+  accountId: string,
+  tradeId: string,
+  input: Readonly<{ notes: string; tags: readonly string[] }>,
+): Promise<void> {
+  const response = await fetch(`${baseUrl}/api/v1/paper/accounts/${accountId}/journal/${tradeId}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+}
+
+export async function resetPaperAccount(accessToken: string, accountId: string): Promise<void> {
+  await postJson(`/api/v1/paper/accounts/${accountId}/reset`, {}, accessToken);
 }
 
 async function postJson<TResponse = unknown>(
