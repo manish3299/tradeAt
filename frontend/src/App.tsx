@@ -10,6 +10,7 @@ import {
   login,
   logout,
   registerAccount,
+  runHistoricalReplay,
   type ApiHealth,
   type AuthSession,
   type IndicatorValue,
@@ -18,6 +19,7 @@ import {
   type MarketStatus,
   type Principal,
   type RegimeClassification,
+  type ReplayResearchResult,
 } from './api';
 import './styles.css';
 
@@ -48,6 +50,11 @@ export function App() {
   const [marketStatus, setMarketStatus] = useState<MarketStatus | undefined>();
   const [indicatorValues, setIndicatorValues] = useState<readonly IndicatorValue[]>([]);
   const [regime, setRegime] = useState<RegimeClassification | undefined>();
+  const [replayResult, setReplayResult] = useState<ReplayResearchResult | undefined>();
+  const [isRunningReplay, setRunningReplay] = useState(false);
+  const [trainingBars, setTrainingBars] = useState(2);
+  const [evaluationBars, setEvaluationBars] = useState(2);
+  const [minimumSamples, setMinimumSamples] = useState(30);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -139,6 +146,33 @@ export function App() {
     }
   }
 
+  async function handleReplay() {
+    const accessToken = session?.tokens.accessToken;
+    if (!accessToken || !selectedInstrumentId) return;
+    setRunningReplay(true);
+    setReplayResult(undefined);
+    setMessage('Running a pinned historical replay...');
+    try {
+      const result = await runHistoricalReplay(accessToken, {
+        instrumentId: selectedInstrumentId,
+        trainingBars,
+        evaluationBars,
+        minimumSamples,
+        startingEquity: 100_000,
+      });
+      setReplayResult(result);
+      setMessage(
+        result.statistics.overall.eligible
+          ? 'Replay complete. Statistics include modeled execution costs.'
+          : 'Replay complete. Metrics are withheld until the minimum sample size is reached.',
+      );
+    } catch {
+      setMessage('Replay could not be completed with the available historical bars.');
+    } finally {
+      setRunningReplay(false);
+    }
+  }
+
   return (
     <main>
       <header>
@@ -153,11 +187,11 @@ export function App() {
 
       <section className="workspace" aria-labelledby="title">
         <div className="intro">
-          <p className="eyebrow">Milestone 02</p>
-          <h1 id="title">Secure workspace access</h1>
+          <p className="eyebrow">Milestone 06</p>
+          <h1 id="title">Replay research workspace</h1>
           <p className="lede">
-            Authentication is now the front door for TradeAt. Once signed in, this workspace becomes
-            the place where market data, decisions, replay, and paper trades will attach.
+            Run the live decision path over chronological market history, include conservative
+            costs, and inspect results without letting future bars leak into the past.
           </p>
         </div>
 
@@ -180,7 +214,7 @@ export function App() {
               </div>
               <div>
                 <dt>Next milestone</dt>
-                <dd>Market data pipeline</dd>
+                <dd>Paper trading and journal</dd>
               </div>
             </dl>
             <section className="market-panel" aria-label="Market data preview">
@@ -236,6 +270,56 @@ export function App() {
                   <p>{regime.reasons[0]}</p>
                 </div>
               ) : null}
+            </section>
+            <section className="replay-panel" aria-label="Historical replay research">
+              <div className="market-toolbar">
+                <div>
+                  <p className="eyebrow">Replay research</p>
+                  <h3>Walk-forward backtest</h3>
+                </div>
+                <span className="origin-label">REPLAY</span>
+              </div>
+              <p className="market-status">
+                Pinned data and versions · stop-first intrabar policy · fees, spread and slippage
+              </p>
+              <div className="replay-settings">
+                <label>
+                  Training bars
+                  <input
+                    type="number"
+                    min="2"
+                    value={trainingBars}
+                    onChange={(event) => setTrainingBars(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  Evaluation bars
+                  <input
+                    type="number"
+                    min="1"
+                    value={evaluationBars}
+                    onChange={(event) => setEvaluationBars(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  Minimum samples
+                  <input
+                    type="number"
+                    min="1"
+                    value={minimumSamples}
+                    onChange={(event) => setMinimumSamples(Number(event.target.value))}
+                  />
+                </label>
+              </div>
+              <button
+                className="button replay-button"
+                type="button"
+                disabled={isRunningReplay}
+                onClick={() => void handleReplay()}
+              >
+                {isRunningReplay ? 'Running replay...' : 'Run historical replay'}
+              </button>
+              {replayResult ? <ReplayResults result={replayResult} /> : null}
             </section>
             <button
               className="button button--secondary"
@@ -301,6 +385,42 @@ export function App() {
   );
 }
 
+function ReplayResults({ result }: Readonly<{ result: ReplayResearchResult }>) {
+  const metrics = result.statistics.overall;
+  return (
+    <div className="replay-results" aria-label="Replay results">
+      <div className="result-heading">
+        <strong>
+          {result.replay.status === 'completed' ? 'Replay complete' : result.replay.status}
+        </strong>
+        <span>{metrics.eligible ? 'Sample eligible' : 'More samples required'}</span>
+      </div>
+      <dl className="metrics-grid">
+        <Metric label="Samples" value={String(metrics.sample_size)} />
+        <Metric label="Coverage" value={formatPercent(result.statistics.coverage)} />
+        <Metric label="Expectancy" value={formatRatio(metrics.expectancy_r, 'R')} />
+        <Metric label="Profit factor" value={formatRatio(metrics.profit_factor)} />
+        <Metric label="Max drawdown" value={formatPercent(metrics.maximum_drawdown_percent)} />
+        <Metric label="Modeled costs" value={metrics.total_costs.toFixed(2)} />
+      </dl>
+      <p className="result-note">
+        Execution {result.statistics.execution_version} · Statistics{' '}
+        {result.statistics.definition_version} · {result.replay.result?.decision_count ?? 0}{' '}
+        decisions
+      </p>
+    </div>
+  );
+}
+
+function Metric({ label, value }: Readonly<{ label: string; value: string }>) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
 function readStoredSession(): StoredSession | undefined {
   try {
     const raw = localStorage.getItem(sessionKey);
@@ -322,4 +442,12 @@ function formatDate(value: string): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatRatio(value: number | undefined, suffix = ''): string {
+  return value === undefined ? '—' : `${value.toFixed(2)}${suffix}`;
 }

@@ -38,6 +38,14 @@ OpenAPI is generated and contract-tested once implementation begins.
 - `GET /api/v1/indicators?instrument_id=...&timeframe=5m&as_of=...` calculates point-in-time EMA, RSI, and ATR values from closed bars only.
 - `GET /api/v1/regimes?instrument_id=...&timeframe=5m&as_of=...` classifies trend and volatility with explanation reasons from point-in-time indicators.
 
+## Implemented replay slice
+
+- `POST /api/v1/replays` creates an authenticated, workspace-owned run with bounded training/evaluation windows, minimum samples, and starting equity.
+- `POST /api/v1/replays/{id}/control` accepts `start`, `pause`, `step`, `seek`, and `set_speed`; lite-mode `start` completes synchronously over the bounded local dataset.
+- `GET /api/v1/replays/{id}` returns pinned identity, cursor, replay time, status, baseline summaries, and decision/outcome counts.
+- `GET /api/v1/statistics?replay_id=...` returns versioned replay-only metrics, eligibility, modeled-cost disclosure, calibration, and required cohort segments.
+- Replay resources use deny-by-default bearer authentication and appear not found across workspace boundaries.
+
 ## WebSocket
 
 Connect at `/api/v1/stream`. Client messages subscribe/unsubscribe to authorized topics such as `market.bar`, `indicator.value`, `decision.published`, `replay.event`, and `system.health`. Each server message uses the architecture event envelope and includes a monotonically increasing connection sequence number. Clients detect gaps and resynchronize over HTTP.

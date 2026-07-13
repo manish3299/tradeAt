@@ -148,3 +148,9 @@ export const bars = pgTable(
     index('bars_instrument_time_idx').on(table.instrumentId, table.openTime),
   ],
 );
+
+export const replayOutputs = pgTable('replay_outputs', {
+  identityHash: text('identity_hash').primaryKey(),
+  result: jsonb('result').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

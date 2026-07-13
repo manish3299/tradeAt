@@ -24,7 +24,7 @@ describe('App', () => {
     render(<App />);
 
     expect((await screen.findByRole('status')).textContent).toContain('Platform ready');
-    expect(screen.getByRole('heading', { name: /secure workspace access/i })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: /replay research workspace/i })).not.toBeNull();
     expect(screen.getByRole('button', { name: /create workspace/i })).not.toBeNull();
   });
 
@@ -214,6 +214,78 @@ describe('App', () => {
           ),
         );
       }
+      if (url.endsWith('/api/v1/replays')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              replay: {
+                id: 'replay-1',
+                instrument_id: 'nse-nifty50',
+                timeframe: '5m',
+                identity_hash: 'identity',
+                status: 'ready',
+                cursor: 0,
+                event_count: 9,
+                replay_time: '2026-07-12T03:20:00.000Z',
+                speed: 1,
+              },
+            }),
+            { status: 201 },
+          ),
+        );
+      }
+      if (url.includes('/api/v1/replays/replay-1/control')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              replay: {
+                id: 'replay-1',
+                instrument_id: 'nse-nifty50',
+                timeframe: '5m',
+                identity_hash: 'identity',
+                status: 'completed',
+                cursor: 9,
+                event_count: 9,
+                replay_time: '2026-07-12T04:00:00.000Z',
+                speed: 1,
+                result: {
+                  decision_count: 3,
+                  outcome_count: 2,
+                  execution_version: '1.0.0',
+                  baselines: [],
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (url.includes('/api/v1/statistics?')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              statistics: {
+                origin: 'replay',
+                definition_version: '1.0.0',
+                execution_version: '1.0.0',
+                costs_included: true,
+                starting_equity: 100000,
+                decision_count: 3,
+                abstention_count: 0,
+                coverage: 1,
+                overall: {
+                  eligible: false,
+                  sample_size: 2,
+                  maximum_drawdown: 4,
+                  maximum_drawdown_percent: 0.00004,
+                  total_costs: 9.8,
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
       return Promise.reject(new Error(`Unexpected URL ${url}`));
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -228,5 +300,9 @@ describe('App', () => {
     expect(await screen.findByText(/sample 5m bars/i)).not.toBeNull();
     expect(await screen.findByText('EMA')).not.toBeNull();
     expect(await screen.findByText(/uptrend \/ normal/i)).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /run historical replay/i }));
+    expect(await screen.findByText('More samples required')).not.toBeNull();
+    expect(screen.getByText(/3 decisions/i)).not.toBeNull();
   });
 });

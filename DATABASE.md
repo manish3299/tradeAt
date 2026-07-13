@@ -35,6 +35,12 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 - Derived value uniqueness: `(instrument_id, timeframe, observed_at, definition_id, definition_version, config_hash)`.
 - The first M3 schema slice includes `instruments` and `bars`; prices and volume are stored as decimal text until numeric precision rules are finalized per provider.
 
+## Replay persistence
+
+- `replay_outputs.identity_hash` is the immutable pinned replay identity.
+- Saving the same deterministic output is idempotent; a different output cannot replace an existing identity.
+- Lite mode uses the equivalent in-memory port, while external mode stores JSONB output with UTC creation time.
+
 ## Indexing and partitioning
 
 - Time-series tables index `(instrument_id, observed_at DESC)` and partition by time after benchmark evidence.

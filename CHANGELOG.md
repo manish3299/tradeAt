@@ -43,6 +43,13 @@ All notable changes are recorded here. The project follows semantic versioning o
 - Decision publication service producing long/short/abstain outputs with entry zones, stops, targets, R, vetoes, and reasons.
 - Versioned decision policy with configurable evidence weights, risk limits, conservative target selection, and policy hashes.
 - Decision orchestration with deterministic identity checks and point-in-time decision correctness across late market revisions.
+- Pinned replay identities, injected replay clock, deterministic event ordering, controls, compatible checkpoints, and immutable lite-mode result persistence.
+- Chronological walk-forward backtesting over the live published-decision contract with late-revision no-look-ahead protection and simple baselines.
+- Versioned execution modeling for entry-zone fills, fees, spread, slippage, stop gaps, conservative ambiguous intrabar fills, targets, MAE, and MFE.
+- Replay statistics for expectancy R, profit factor, win/loss/breakeven and target-hit rates, drawdown, calibration, costs, coverage, minimum samples, and required cohorts.
+- Authenticated replay creation/control/retrieval and statistics APIs with cross-workspace isolation.
+- Signed-in replay research panel with configurable walk-forward windows, minimum-sample gating, permanent replay labeling, and cost/version disclosure.
+- Immutable replay-output persistence in lite mode and PostgreSQL external dependency mode.
 
 ### Fixed
 
