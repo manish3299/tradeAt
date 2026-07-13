@@ -37,6 +37,7 @@ OpenAPI is generated and contract-tested once implementation begins.
 - `POST /api/v1/market/bars/import` accepts CSV candles for lite-mode historical import. Required headers are `instrument_id,timeframe,open_time,open,high,low,close,volume`; optional `source` and `revision` make imports idempotent.
 - `GET /api/v1/indicators?instrument_id=...&timeframe=5m&as_of=...` calculates point-in-time EMA, RSI, and ATR values from closed bars only.
 - `GET /api/v1/regimes?instrument_id=...&timeframe=5m&as_of=...` classifies trend and volatility with explanation reasons from point-in-time indicators.
+- `GET /api/v1/decisions/latest?instrument_id=...&timeframe=5m&as_of=...` returns an authenticated, workspace-contextualized point-in-time decision with confidence, policy identity, gates, vetoes, and reproducibility fields.
 
 ## Implemented replay slice
 

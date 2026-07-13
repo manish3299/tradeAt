@@ -9,6 +9,7 @@ import type { DependencyProbe } from './domain/health.js';
 import type { MarketDataStore } from './domain/market.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
 import { registerIndicatorRoutes } from './infrastructure/http/indicator-routes.js';
+import { registerDecisionRoutes } from './infrastructure/http/decision-routes.js';
 import { registerMarketRoutes } from './infrastructure/http/market-routes.js';
 import { registerRegimeRoutes } from './infrastructure/http/regime-routes.js';
 import { registerReplayRoutes } from './infrastructure/http/replay-routes.js';
@@ -86,6 +87,7 @@ export async function buildApp({
   registerMarketRoutes(app, market);
   registerIndicatorRoutes(app, market);
   registerRegimeRoutes(app, market);
+  registerDecisionRoutes(app, auth, market);
   registerReplayRoutes(
     app,
     auth,

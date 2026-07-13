@@ -24,7 +24,7 @@ describe('App', () => {
     render(<App />);
 
     expect((await screen.findByRole('status')).textContent).toContain('Platform ready');
-    expect(screen.getByRole('heading', { name: /forward paper workspace/i })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: /tradeat mvp dashboard/i })).not.toBeNull();
     expect(screen.getByRole('button', { name: /create workspace/i })).not.toBeNull();
   });
 
@@ -40,7 +40,8 @@ describe('App', () => {
   });
 
   it('registers and displays the active workspace', async () => {
-    const fetchMock = vi.fn((url: string) => {
+    let paperFilled = false;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url.endsWith('/health/ready')) {
         return Promise.resolve(new Response(JSON.stringify({ status: 'ready' }), { status: 200 }));
       }
@@ -164,7 +165,7 @@ describe('App', () => {
                 latest_bar_at: '2026-07-12T04:00:00.000Z',
                 checked_at: '2026-07-12T05:00:00.000Z',
                 stale_after_seconds: 900,
-                gap_count: 0,
+                gap_count: 1,
                 source: 'sample-lite',
               },
             }),
@@ -208,6 +209,37 @@ describe('App', () => {
                 slow_ema: 24680.1,
                 close: 24701.2,
                 reasons: ['Fast EMA 24688.2 vs slow EMA 24680.1 classified trend as uptrend.'],
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (url.includes('/api/v1/decisions/latest')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              decision: {
+                id: 'decision-1',
+                version: '1.0.0',
+                instrument_id: 'nse-nifty50',
+                timeframe: '5m',
+                evaluated_at: '2026-07-12T04:00:00.000Z',
+                direction: 'abstain',
+                score: 0.22,
+                confidence: 0.6,
+                targets: [],
+                vetoes: [{ code: 'insufficient_samples', message: 'Sample size 6 is below 30.' }],
+                reasons: ['Sample size is below the configured gate.'],
+                gates: [
+                  {
+                    gate: 'confidence',
+                    status: 'veto',
+                    reasons: ['Confidence requires enough samples.'],
+                  },
+                ],
+                policy_version: '1.0.0',
+                policy_hash: 'policy-hash',
               },
             }),
             { status: 200 },
@@ -286,6 +318,132 @@ describe('App', () => {
           ),
         );
       }
+      if (url.endsWith('/api/v1/paper/accounts') && init?.method === 'POST') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              account: {
+                id: 'paper-1',
+                name: 'Forward proof',
+                currency: 'INR',
+                startingBalance: 100000,
+                cashBalance: 100000,
+                equity: 100000,
+                status: 'active',
+                version: 1,
+                executionModel: {
+                  version: 'paper-execution-v1',
+                  feeBps: 1,
+                  spreadBps: 2,
+                  slippageBps: 1,
+                  latencyMs: 250,
+                },
+              },
+            }),
+            { status: 201 },
+          ),
+        );
+      }
+      if (url.includes('/api/v1/paper/accounts/paper-1/orders')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              order: {
+                id: 'order-1',
+                instrumentId: 'nse-nifty50',
+                side: 'buy',
+                type: 'market',
+                quantity: 1,
+                status: 'pending',
+              },
+            }),
+            { status: 201 },
+          ),
+        );
+      }
+      if (url.includes('/api/v1/paper/accounts/paper-1/process-bar')) {
+        paperFilled = true;
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ origin: 'paper', fills: [{ id: 'fill-1', origin: 'paper' }] }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (url.includes('/api/v1/paper/accounts/paper-1/journal/')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ trade: { id: 'trade-1' } }), { status: 200 }),
+        );
+      }
+      if (url.endsWith('/api/v1/paper/accounts/paper-1')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              snapshot: {
+                accounts: [
+                  {
+                    id: 'paper-1',
+                    name: 'Forward proof',
+                    currency: 'INR',
+                    startingBalance: 100000,
+                    cashBalance: paperFilled ? 75337 : 100000,
+                    equity: paperFilled ? 100010 : 100000,
+                    status: 'active',
+                    version: 1,
+                    executionModel: {
+                      version: 'paper-execution-v1',
+                      feeBps: 1,
+                      spreadBps: 2,
+                      slippageBps: 1,
+                      latencyMs: 250,
+                    },
+                  },
+                ],
+                orders: paperFilled ? [{ id: 'order-1', status: 'filled' }] : [],
+                fills: paperFilled
+                  ? [
+                      {
+                        id: 'fill-1',
+                        instrumentId: 'nse-nifty50',
+                        side: 'buy',
+                        quantity: 1,
+                        price: 24662,
+                        fee: 2.47,
+                        origin: 'paper',
+                      },
+                    ]
+                  : [],
+                positions: paperFilled
+                  ? [
+                      {
+                        instrumentId: 'nse-nifty50',
+                        quantity: 1,
+                        averagePrice: 24662,
+                        realizedPnl: -2.47,
+                      },
+                    ]
+                  : [],
+                journal: paperFilled
+                  ? [
+                      {
+                        id: 'trade-1',
+                        instrumentId: 'nse-nifty50',
+                        origin: 'paper',
+                        status: 'open',
+                        direction: 'long',
+                        quantity: 1,
+                        entryPrice: 24662,
+                        notes: '',
+                        tags: [],
+                      },
+                    ]
+                  : [],
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
       return Promise.reject(new Error(`Unexpected URL ${url}`));
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -299,12 +457,37 @@ describe('App', () => {
     expect(screen.getByText('trader@example.com')).not.toBeNull();
     expect(await screen.findByText(/sample 5m bars/i)).not.toBeNull();
     expect(await screen.findByText('EMA')).not.toBeNull();
-    expect(await screen.findByText(/uptrend \/ normal/i)).not.toBeNull();
+    expect((await screen.findAllByText(/uptrend \/ normal/i)).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('img', { name: /recent closing prices/i })).not.toBeNull();
+    expect(await screen.findByText('ABSTAIN')).not.toBeNull();
+    expect(screen.getByText(/sample size 6 is below 30/i)).not.toBeNull();
+    expect(screen.getByRole('navigation', { name: /instrument watchlist/i })).not.toBeNull();
+    expect(screen.getByRole('link', { name: /skip to dashboard content/i })).not.toBeNull();
+    const reconnect = screen.getByRole('button', { name: /reconnect and resync/i });
+    fireEvent.click(reconnect);
+    expect(await screen.findByText(/market context loaded/i)).not.toBeNull();
     expect(screen.getByText('PAPER')).not.toBeNull();
     expect(screen.getByRole('button', { name: /create paper account/i })).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /run historical replay/i }));
     expect(await screen.findByText('More samples required')).not.toBeNull();
     expect(screen.getByText(/3 decisions/i)).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /create paper account/i }));
+    const confirmation = await screen.findByRole('checkbox', {
+      name: /confirm this simulated paper order/i,
+    });
+    fireEvent.click(confirmation);
+    fireEvent.click(screen.getByRole('button', { name: /submit buy paper order/i }));
+    const paperActivity = await screen.findByLabelText(/paper positions and journal/i);
+    await waitFor(() => expect(paperActivity.textContent).toContain('Positions 1'));
+    fireEvent.change(screen.getByLabelText(/journal notes/i), {
+      target: { value: 'Followed the evidence gate.' },
+    });
+    fireEvent.change(screen.getByLabelText(/^tags$/i), {
+      target: { value: 'disciplined, breakout' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save journal entry/i }));
+    expect(await screen.findByText(/journal notes and tags saved/i)).not.toBeNull();
   });
 });

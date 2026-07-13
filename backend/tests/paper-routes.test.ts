@@ -60,8 +60,8 @@ describe('paper routes', () => {
       headers: bearer(first),
       payload: {
         instrument_id: 'nse-nifty50',
-        open_time: '2026-07-13T09:00:00.000Z',
-        close_time: '2026-07-13T09:05:00.000Z',
+        open_time: '2030-07-13T09:00:00.000Z',
+        close_time: '2030-07-13T09:05:00.000Z',
         open: 100,
         high: 102,
         low: 99,
