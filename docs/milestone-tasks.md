@@ -78,18 +78,11 @@ are now delivered together.
 
 ## Milestone 10 - Strategy Validation and Learning
 
-- [ ] Add configuration/dataset registries and reproducible strategy comparison reports.
-- [ ] Add promotion gates for expectancy, calibration, drawdown, stability, and sample size.
-- [ ] Monitor drift and performance degradation without automatic self-deployment.
+- [x] Add configuration/dataset registries and reproducible strategy comparison reports.
+- [x] Add promotion gates for expectancy, calibration, drawdown, stability, and sample size.
+- [x] Monitor drift and performance degradation without automatic self-deployment.
 
-## Milestone 11 - Kronos Machine Learning
-
-- [ ] Integrate Kronos behind a replaceable forecast adapter in shadow mode.
-- [ ] Evaluate it with chronological splits, embargo/leakage controls, and simple baselines.
-- [ ] Measure calibration, latency, drift, regime stability, and agreement/disagreement outcomes.
-- [ ] Promote only as bounded evidence after approved out-of-sample improvement.
-
-## Milestone 12 - Production Polish and Release
+## Milestone 11 - Production Polish and Release
 
 - [ ] Complete security, privacy, accessibility, performance, and dependency reviews.
 - [ ] Validate migrations, backup/restore, retention, observability, and runbooks.
