@@ -4,6 +4,7 @@ import { DecisionOrchestrator } from './decision-orchestrator.js';
 import { DecisionReplayStrategy } from './decision-replay-strategy.js';
 import { RegimeService } from './regime-service.js';
 import { ReplayController } from './replay-controller.js';
+import type { HistoricalMemoryService } from './historical-memory-service.js';
 import { StatisticsService, type ReplayStatisticsReport } from './statistics-service.js';
 import type { Bar, MarketDataStore, Timeframe } from '../domain/market.js';
 import type {
@@ -74,6 +75,7 @@ export class ReplayRunService {
   constructor(
     private readonly market: MarketDataStore,
     private readonly resultStore?: ReplayResultStore,
+    private readonly memory?: HistoricalMemoryService,
   ) {
     this.orchestrator = new DecisionOrchestrator(market);
     this.regimes = new RegimeService(market);
@@ -232,6 +234,60 @@ export class ReplayRunService {
       startingEquity: run.input.startingEquity,
       executionVersion: result.execution.version,
     });
+    if (this.memory) {
+      for (const item of result.decisions) {
+        const decision = item.decision;
+        const context = run.bars.filter(
+          (bar) => bar.closeTime <= decision.evaluatedAt && bar.receivedAt <= decision.evaluatedAt,
+        );
+        const latest = context.at(-1);
+        if (!latest) continue;
+        const previous = context.at(-2) ?? latest;
+        const averageVolume =
+          context.slice(-20).reduce((sum, bar) => sum + bar.volume, 0) /
+          Math.max(1, context.slice(-20).length);
+        const outcome = result.outcomes.find((candidate) => candidate.decisionId === decision.id);
+        await this.memory.capture({
+          workspaceId: run.workspaceId,
+          instrumentId: run.instrumentId,
+          timeframe: run.timeframe,
+          observedAt: decision.evaluatedAt,
+          availableAt: outcome?.closedAt ?? decision.evaluatedAt,
+          session: item.session,
+          regime: item.regime,
+          setupId: item.setupId,
+          decisionId: decision.id,
+          direction: decision.direction,
+          features: {
+            momentumPct: previous.close ? latest.close / previous.close - 1 : 0,
+            rangePct: latest.close ? (latest.high - latest.low) / latest.close : 0,
+            volumeRatio: averageVolume ? latest.volume / averageVolume : 1,
+            decisionScore: decision.score,
+          },
+          ...(outcome
+            ? {
+                outcome: {
+                  returnR: outcome.returnR,
+                  targetHit: outcome.targetHit,
+                  closedAt: outcome.closedAt,
+                },
+              }
+            : {}),
+          versions: {
+            feature: 'memory-features-v1',
+            regime: run.identity.pluginVersions['regime'] ?? 'unknown',
+            decision: decision.version,
+            policy: decision.policyVersion,
+          },
+          provenance: {
+            datasetHash: run.identity.datasetHash,
+            source: 'replay',
+            inputStart: context[0]!.closeTime,
+            inputEnd: latest.closeTime,
+          },
+        });
+      }
+    }
   }
 
   private findOwned(workspaceId: string, runId: string): ReplayRun {

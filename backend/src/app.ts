@@ -5,6 +5,7 @@ import { AuthService } from './application/auth-service.js';
 import { CheckReadiness } from './application/check-readiness.js';
 import { ReplayRunService } from './application/replay-run-service.js';
 import { PaperTradingService } from './application/paper-trading-service.js';
+import { HistoricalMemoryService } from './application/historical-memory-service.js';
 import type { DependencyProbe } from './domain/health.js';
 import type { MarketDataStore } from './domain/market.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
@@ -14,6 +15,7 @@ import { registerMarketRoutes } from './infrastructure/http/market-routes.js';
 import { registerRegimeRoutes } from './infrastructure/http/regime-routes.js';
 import { registerReplayRoutes } from './infrastructure/http/replay-routes.js';
 import { registerPaperRoutes } from './infrastructure/http/paper-routes.js';
+import { registerHistoricalMemoryRoutes } from './infrastructure/http/historical-memory-routes.js';
 import { InMemoryIdentityStore } from './infrastructure/identity/in-memory-identity-store.js';
 import { PostgresIdentityStore } from './infrastructure/identity/postgres-identity-store.js';
 import { InMemoryMarketDataStore } from './infrastructure/market/in-memory-market-data-store.js';
@@ -22,6 +24,8 @@ import { InMemoryReplayResultStore } from './infrastructure/replay/in-memory-rep
 import { PostgresReplayResultStore } from './infrastructure/replay/postgres-replay-result-store.js';
 import { InMemoryPaperStateStore } from './infrastructure/paper/in-memory-paper-state-store.js';
 import { PostgresPaperStateStore } from './infrastructure/paper/postgres-paper-state-store.js';
+import { InMemoryHistoricalMemoryStore } from './infrastructure/memory/in-memory-historical-memory-store.js';
+import { PostgresHistoricalMemoryStore } from './infrastructure/memory/postgres-historical-memory-store.js';
 import { OpaqueSecretGenerator } from './infrastructure/security/opaque-secret-generator.js';
 import { ScryptPasswordHasher } from './infrastructure/security/scrypt-password-hasher.js';
 
@@ -32,6 +36,7 @@ export type AppDependencies = Readonly<{
   marketStore?: MarketDataStore;
   replayService?: ReplayRunService;
   paperService?: PaperTradingService;
+  memoryService?: HistoricalMemoryService;
 }>;
 
 export async function buildApp({
@@ -41,6 +46,7 @@ export async function buildApp({
   marketStore,
   replayService,
   paperService,
+  memoryService,
 }: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.logLevel, redact: ['req.headers.authorization', 'req.headers.cookie'] },
@@ -76,6 +82,11 @@ export async function buildApp({
     config.dependencyMode === 'external' && config.databaseUrl
       ? new PostgresPaperStateStore(config.databaseUrl)
       : new InMemoryPaperStateStore();
+  const ownedMemoryStore =
+    config.dependencyMode === 'external' && config.databaseUrl
+      ? new PostgresHistoricalMemoryStore(config.databaseUrl)
+      : new InMemoryHistoricalMemoryStore();
+  const memory = memoryService ?? new HistoricalMemoryService(ownedMemoryStore);
 
   app.get('/health/live', () => ({ status: 'alive', timestamp: new Date().toISOString() }));
   app.get('/health/ready', async (_request, reply) => {
@@ -91,9 +102,10 @@ export async function buildApp({
   registerReplayRoutes(
     app,
     auth,
-    replayService ?? new ReplayRunService(market, ownedReplayResultStore),
+    replayService ?? new ReplayRunService(market, ownedReplayResultStore, memory),
   );
   registerPaperRoutes(app, auth, paperService ?? new PaperTradingService(ownedPaperStore));
+  registerHistoricalMemoryRoutes(app, auth, market, memory);
   app.addHook('onClose', async () => {
     await Promise.all([
       ...probes.map((probe) => probe.close()),
@@ -103,6 +115,7 @@ export async function buildApp({
         ? ownedReplayResultStore.close()
         : Promise.resolve(),
       paperService ? Promise.resolve() : (ownedPaperStore.close?.() ?? Promise.resolve()),
+      memoryService ? Promise.resolve() : (ownedMemoryStore.close?.() ?? Promise.resolve()),
     ]);
   });
   return app;

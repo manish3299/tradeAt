@@ -14,14 +14,14 @@ Detailed implementation checklists are maintained in `docs/milestone-tasks.md`.
 | 6   | Replay, backtest, and statistics | complete    | **First actual results:** walk-forward historical outcomes, expectancy, target-hit rate, drawdown, calibration, MAE/MFE, and costs. |
 | 7   | Paper trading and journal        | complete    | **Forward results:** decisions become simulated orders/fills/positions with paper equity and an auditable journal.                  |
 | 8   | MVP dashboard                    | complete    | **MVP ready:** one usable interface for market state, decisions, replay results, paper trading, journal, and core analytics.        |
-| 9   | Historical memory                | not started | Decisions show how comparable point-in-time setups performed previously.                                                            |
+| 9   | Historical memory                | complete    | Decisions show how comparable point-in-time setups performed previously.                                                            |
 | 10  | Strategy validation and learning | not started | Strategy/config versions are compared, monitored, and promoted through reproducible evidence gates.                                 |
 | 11  | Kronos machine learning          | not started | Kronos runs in shadow mode and becomes bounded evidence only if it improves the deterministic baseline out of sample.               |
 | 12  | Production polish and release    | not started | Security, accessibility, performance, restore, deployment, documentation, and release gates pass.                                   |
 
 ## Current next action
 
-Start Milestone 9 point-in-time historical memory and reproducible comparable-setup retrieval.
+Start Milestone 10 reproducible strategy validation, comparison reports, promotion gates, and drift monitoring.
 
 ## Delivery checkpoints
 

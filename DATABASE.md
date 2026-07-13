@@ -47,6 +47,13 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 - The aggregate contains versioned accounts, idempotent orders, immutable fills, positions, balanced ledger transactions, journal lifecycle records, and audit events.
 - Lite mode uses the same `PaperStateStore` contract in memory. Later normalization can expand the aggregate into the designed paper tables without changing application contracts.
 
+## Historical-memory persistence
+
+- `historical_snapshots.id` is a deterministic hash of the full immutable point-in-time snapshot.
+- `workspace_id` and `available_at` provide deny-by-default tenant and temporal filtering before similarity scoring.
+- The JSONB snapshot retains setup, transparent features, regime, decision, optional outcome, exact versions, dataset hash, source origin, and input range.
+- Outcome-bearing memories become queryable only at outcome availability time; current state is never backfilled into an earlier query.
+
 ## Indexing and partitioning
 
 - Time-series tables index `(instrument_id, observed_at DESC)` and partition by time after benchmark evidence.

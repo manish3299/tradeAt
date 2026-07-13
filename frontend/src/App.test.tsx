@@ -318,6 +318,34 @@ describe('App', () => {
           ),
         );
       }
+      if (url.includes('/api/v1/historical-memory/similar')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              definition_version: 'historical-memory-v1',
+              cohort: { sampleSize: 2, outcomes: 2, meanReturnR: 0.5, confidence95: [-0.2, 1.2] },
+              matches: [
+                {
+                  distance: 0.12,
+                  contributions: { momentumPct: 0.01 },
+                  snapshot: {
+                    id: 'memory-1',
+                    observed_at: '2026-07-11T04:00:00.000Z',
+                    available_at: '2026-07-11T05:00:00.000Z',
+                    setup_id: 'long-continuation',
+                    regime: 'uptrend/normal',
+                    direction: 'long',
+                    outcome: { returnR: 2, targetHit: true },
+                    versions: { decision: '1.0.0' },
+                    provenance: { datasetHash: 'dataset', source: 'replay' },
+                  },
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
+        );
+      }
       if (url.endsWith('/api/v1/paper/accounts') && init?.method === 'POST') {
         return Promise.resolve(
           new Response(
@@ -472,6 +500,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: /run historical replay/i }));
     expect(await screen.findByText('More samples required')).not.toBeNull();
     expect(screen.getByText(/3 decisions/i)).not.toBeNull();
+    expect(await screen.findByText(/2 comparable snapshots/i)).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /create paper account/i }));
     const confirmation = await screen.findByRole('checkbox', {

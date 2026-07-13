@@ -8,6 +8,7 @@ import {
   fetchMe,
   fetchRegime,
   fetchLatestDecision,
+  fetchHistoricalMemory,
   login,
   logout,
   registerAccount,
@@ -30,6 +31,7 @@ import {
   type PaperAccount,
   type PaperSnapshot,
   type ExplainableDecision,
+  type HistoricalMemoryResult,
 } from './api';
 import './styles.css';
 
@@ -78,6 +80,7 @@ export function App() {
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [journalNotes, setJournalNotes] = useState('');
   const [journalTags, setJournalTags] = useState('');
+  const [historicalMemory, setHistoricalMemory] = useState<HistoricalMemoryResult | undefined>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -211,6 +214,21 @@ export function App() {
         startingEquity: 100_000,
       });
       setReplayResult(result);
+      const latestBar = bars.at(-1);
+      if (latestBar) {
+        try {
+          setHistoricalMemory(
+            await fetchHistoricalMemory(
+              accessToken,
+              selectedInstrumentId,
+              latestBar.received_at,
+              decision?.score ?? 0,
+            ),
+          );
+        } catch {
+          setHistoricalMemory(undefined);
+        }
+      }
       setMessage(
         result.statistics.overall.eligible
           ? 'Replay complete. Statistics include modeled execution costs.'
@@ -705,6 +723,65 @@ export function App() {
                 REPLAY and PAPER origins remain separate. No metric implies guaranteed or
                 brokerage-realized returns.
               </p>
+            </section>
+            <section className="replay-panel memory-panel" aria-label="Historical memory">
+              <div className="market-toolbar">
+                <div>
+                  <p className="eyebrow">Historical memory</p>
+                  <h3>Comparable point-in-time setups</h3>
+                </div>
+                <span className="origin-label">VERSION MATCHED</span>
+              </div>
+              {!historicalMemory ? (
+                <p className="market-status">
+                  Run a replay to populate reproducible prior setup memories.
+                </p>
+              ) : (
+                <>
+                  <p className="market-status">
+                    {historicalMemory.cohort.sampleSize} comparable snapshots ·{' '}
+                    {historicalMemory.cohort.outcomes} known outcomes · definition{' '}
+                    {historicalMemory.definition_version}
+                  </p>
+                  <dl className="metrics-grid">
+                    <Metric
+                      label="Cohort size"
+                      value={String(historicalMemory.cohort.sampleSize)}
+                    />
+                    <Metric
+                      label="Mean outcome"
+                      value={formatRatio(historicalMemory.cohort.meanReturnR, 'R')}
+                    />
+                    <Metric
+                      label="Uncertainty"
+                      value={
+                        historicalMemory.cohort.confidence95
+                          ? `${historicalMemory.cohort.confidence95[0].toFixed(2)}–${historicalMemory.cohort.confidence95[1].toFixed(2)}R`
+                          : 'More outcomes required'
+                      }
+                    />
+                  </dl>
+                  <ol className="memory-list">
+                    {historicalMemory.matches.map((match) => (
+                      <li key={match.snapshot.id}>
+                        <strong>{match.snapshot.setup_id}</strong>
+                        <span>
+                          {match.snapshot.regime} · distance {match.distance.toFixed(4)}
+                        </span>
+                        <span>
+                          {match.snapshot.outcome
+                            ? `${match.snapshot.outcome.returnR.toFixed(2)}R`
+                            : 'Outcome unavailable at query time'}
+                        </span>
+                        <small>
+                          {match.snapshot.provenance.source.toUpperCase()} ·{' '}
+                          {match.snapshot.versions.decision}
+                        </small>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              )}
             </section>
             <button
               className="button button--secondary"

@@ -102,6 +102,30 @@ export type ExplainableDecision = Readonly<{
   policy_version: string;
   policy_hash: string;
 }>;
+export type HistoricalMemoryResult = Readonly<{
+  definition_version: string;
+  cohort: {
+    sampleSize: number;
+    outcomes: number;
+    meanReturnR?: number;
+    confidence95?: readonly [number, number];
+  };
+  matches: readonly {
+    distance: number;
+    contributions: Record<string, number>;
+    snapshot: {
+      id: string;
+      observed_at: string;
+      available_at: string;
+      setup_id: string;
+      regime: string;
+      direction: string;
+      outcome?: { returnR: number; targetHit: boolean };
+      versions: Record<string, string>;
+      provenance: { datasetHash: string; source: string };
+    };
+  }[];
+}>;
 
 export type ReplayRun = Readonly<{
   id: string;
@@ -314,6 +338,26 @@ export async function fetchLatestDecision(
   });
   if (!response.ok) throw new Error(`Request failed with ${response.status}`);
   return ((await response.json()) as { decision: ExplainableDecision }).decision;
+}
+
+export async function fetchHistoricalMemory(
+  accessToken: string,
+  instrumentId: string,
+  asOf: string,
+  decisionScore: number,
+): Promise<HistoricalMemoryResult> {
+  const params = new URLSearchParams({
+    instrument_id: instrumentId,
+    timeframe: '5m',
+    as_of: asOf,
+    decision_score: String(decisionScore),
+    limit: '5',
+  });
+  const response = await fetch(`${baseUrl}/api/v1/historical-memory/similar?${params}`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+  return (await response.json()) as HistoricalMemoryResult;
 }
 
 export async function runHistoricalReplay(
