@@ -72,9 +72,9 @@ are now delivered together.
 
 ## Milestone 9 - Historical Memory
 
-- [ ] Store point-in-time setup, feature, regime, decision, and outcome snapshots.
-- [ ] Implement reproducible similarity/cohort retrieval with provenance and uncertainty.
-- [ ] Test temporal correctness, version isolation, and retrieval stability.
+- [x] Store point-in-time setup, feature, regime, decision, and outcome snapshots.
+- [x] Implement reproducible similarity/cohort retrieval with provenance and uncertainty.
+- [x] Test temporal correctness, version isolation, and retrieval stability.
 
 ## Milestone 10 - Strategy Validation and Learning
 

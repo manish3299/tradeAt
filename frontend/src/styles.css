@@ -701,3 +701,34 @@ textarea {
     animation: none !important;
   }
 }
+.memory-panel {
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  padding: 1rem;
+}
+.memory-list {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0;
+  list-style: none;
+}
+.memory-list li {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid #ececec;
+  border-radius: 6px;
+  padding: 0.7rem;
+}
+.memory-list span,
+.memory-list small {
+  color: #565869;
+  font-size: 0.78rem;
+}
+@media (max-width: 700px) {
+  .memory-list li {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}

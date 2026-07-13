@@ -162,3 +162,12 @@ export const paperWorkspaceStates = pgTable('paper_workspace_states', {
   state: jsonb('state').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const historicalSnapshots = pgTable('historical_snapshots', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  availableAt: timestamp('available_at', { withTimezone: true }).notNull(),
+  snapshot: jsonb('snapshot').notNull(),
+});

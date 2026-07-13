@@ -58,6 +58,13 @@ OpenAPI is generated and contract-tested once implementation begins.
 - `PATCH /api/v1/paper/accounts/{accountId}/journal/{tradeId}` updates notes, tags, MAE, and MFE without replacing lifecycle audit history.
 - `POST /api/v1/paper/accounts/{accountId}/reset` closes an account version and retains its immutable history.
 
+## Implemented historical-memory slice
+
+- `GET /api/v1/historical-memory/similar?instrument_id=...&timeframe=5m&as_of=...` returns bounded, workspace-scoped comparable setups.
+- Candidates must have been available by `as_of`, must precede the target observation, and must exactly match feature, regime, decision, and policy versions.
+- Every match discloses deterministic distance, per-feature contributions, outcome availability, versions, and dataset provenance.
+- Cohort summaries report match count, known-outcome count, mean R when available, and a 95% interval only when enough outcomes exist.
+
 ## WebSocket
 
 Connect at `/api/v1/stream`. Client messages subscribe/unsubscribe to authorized topics such as `market.bar`, `indicator.value`, `decision.published`, `replay.event`, and `system.health`. Each server message uses the architecture event envelope and includes a monotonically increasing connection sequence number. Clients detect gaps and resynchronize over HTTP.

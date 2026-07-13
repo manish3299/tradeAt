@@ -76,6 +76,26 @@ describe('replay routes', () => {
         overall: { eligible: false, sample_size: 0 },
       },
     });
+    const memory = await app.inject({
+      method: 'GET',
+      url: '/api/v1/historical-memory/similar?instrument_id=nse-nifty50&timeframe=5m&as_of=2026-07-12T10:00:00.000Z&limit=5',
+      headers: bearer(first.accessToken),
+    });
+    expect(memory.statusCode).toBe(200);
+    const memoryBody = memory.json<{
+      definition_version: string;
+      cohort: { sampleSize: number };
+      matches: unknown[];
+    }>();
+    expect(memoryBody.definition_version).toBe('historical-memory-v1');
+    expect(memoryBody.cohort.sampleSize).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(memoryBody.matches)).toBe(true);
+    const isolatedMemory = await app.inject({
+      method: 'GET',
+      url: '/api/v1/historical-memory/similar?instrument_id=nse-nifty50&timeframe=5m&as_of=2026-07-12T10:00:00.000Z&limit=5',
+      headers: bearer(second.accessToken),
+    });
+    expect(isolatedMemory.json()).toMatchObject({ cohort: { sampleSize: 0 }, matches: [] });
     await app.close();
   });
 });

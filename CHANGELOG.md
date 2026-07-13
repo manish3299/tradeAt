@@ -6,6 +6,8 @@ All notable changes are recorded here. The project follows semantic versioning o
 
 ### Added
 
+- Milestone 9 historical memory with deterministic point-in-time context snapshots, replay outcome capture, exact version isolation, transparent similarity contributions, bounded cohort retrieval, uncertainty intervals, PostgreSQL persistence, authenticated APIs, and dashboard comparable-setup evidence.
+
 - Milestone 8 unified MVP dashboard with an accessible watchlist, bounded price chart, freshness/gap resynchronization states, explainable decision gates, replay research, PAPER order/position/equity workflow, journal editing, and origin-separated analytics.
 - Authenticated latest-decision API derived only from bars closed and received by the requested point in time, with honest abstention when evidence, freshness, or sample gates fail.
 
