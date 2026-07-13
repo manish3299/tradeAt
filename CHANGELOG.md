@@ -6,6 +6,9 @@ All notable changes are recorded here. The project follows semantic versioning o
 
 ### Added
 
+- Milestone 7 paper-trading core with versioned accounts, confirmed/idempotent market/limit/stop/stop-limit orders, deterministic partial fills, positions, balanced ledger transactions, risk rejection, cancellation, and reset history.
+- PAPER-origin journal lifecycle, notes/tags and MAE/MFE inputs, forward-only statistics, authenticated tenant-scoped APIs, PostgreSQL aggregate persistence, and a permanently labeled frontend order workflow with no broker adapter.
+
 - Engineering design repository and project source of truth.
 - Product, architecture, database, API, UI/UX, plugin, decision, learning, statistics, deployment, standards, and roadmap specifications.
 - Milestone session prompts and Codex operating rules.

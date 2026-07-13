@@ -11,6 +11,10 @@ import {
   logout,
   registerAccount,
   runHistoricalReplay,
+  createPaperAccount,
+  submitPaperOrder,
+  processPaperBar,
+  fetchPaperSnapshot,
   type ApiHealth,
   type AuthSession,
   type IndicatorValue,
@@ -20,6 +24,8 @@ import {
   type Principal,
   type RegimeClassification,
   type ReplayResearchResult,
+  type PaperAccount,
+  type PaperSnapshot,
 } from './api';
 import './styles.css';
 
@@ -55,6 +61,12 @@ export function App() {
   const [trainingBars, setTrainingBars] = useState(2);
   const [evaluationBars, setEvaluationBars] = useState(2);
   const [minimumSamples, setMinimumSamples] = useState(30);
+  const [paperAccount, setPaperAccount] = useState<PaperAccount | undefined>();
+  const [paperSnapshot, setPaperSnapshot] = useState<PaperSnapshot | undefined>();
+  const [paperSide, setPaperSide] = useState<'buy' | 'sell'>('buy');
+  const [paperQuantity, setPaperQuantity] = useState(1);
+  const [paperConfirmed, setPaperConfirmed] = useState(false);
+  const [isPaperWorking, setPaperWorking] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -173,6 +185,50 @@ export function App() {
     }
   }
 
+  async function handleCreatePaperAccount() {
+    const accessToken = session?.tokens.accessToken;
+    if (!accessToken) return;
+    setPaperWorking(true);
+    try {
+      const account = await createPaperAccount(accessToken);
+      setPaperAccount(account);
+      setPaperSnapshot(await fetchPaperSnapshot(accessToken, account.id));
+      setMessage('PAPER account ready. No broker connection exists or can be invoked.');
+    } catch {
+      setMessage('Paper account could not be created.');
+    } finally {
+      setPaperWorking(false);
+    }
+  }
+
+  async function handlePaperOrder() {
+    const accessToken = session?.tokens.accessToken;
+    const latestBar = bars.at(-1);
+    if (!accessToken || !paperAccount || !latestBar || !paperConfirmed) return;
+    setPaperWorking(true);
+    try {
+      const order = await submitPaperOrder(accessToken, paperAccount.id, {
+        instrumentId: selectedInstrumentId,
+        side: paperSide,
+        quantity: paperQuantity,
+        referencePrice: latestBar.close,
+      });
+      if (order.status !== 'rejected')
+        await processPaperBar(accessToken, paperAccount.id, latestBar);
+      setPaperSnapshot(await fetchPaperSnapshot(accessToken, paperAccount.id));
+      setPaperConfirmed(false);
+      setMessage(
+        order.status === 'rejected'
+          ? `PAPER order rejected: ${order.rejectionReason ?? 'risk limit'}.`
+          : 'PAPER order processed with the pinned simulation model.',
+      );
+    } catch {
+      setMessage('Paper order could not be processed.');
+    } finally {
+      setPaperWorking(false);
+    }
+  }
+
   return (
     <main>
       <header>
@@ -187,11 +243,11 @@ export function App() {
 
       <section className="workspace" aria-labelledby="title">
         <div className="intro">
-          <p className="eyebrow">Milestone 06</p>
-          <h1 id="title">Replay research workspace</h1>
+          <p className="eyebrow">Milestone 07</p>
+          <h1 id="title">Forward paper workspace</h1>
           <p className="lede">
-            Run the live decision path over chronological market history, include conservative
-            costs, and inspect results without letting future bars leak into the past.
+            Keep historical replay research separate while collecting simulated forward results
+            through deterministic orders, fills, positions, ledger entries, and journal records.
           </p>
         </div>
 
@@ -213,7 +269,7 @@ export function App() {
                 <dd>{formatDate(session.tokens.accessExpiresAt)}</dd>
               </div>
               <div>
-                <dt>Next milestone</dt>
+                <dt>Current milestone</dt>
                 <dd>Paper trading and journal</dd>
               </div>
             </dl>
@@ -320,6 +376,95 @@ export function App() {
                 {isRunningReplay ? 'Running replay...' : 'Run historical replay'}
               </button>
               {replayResult ? <ReplayResults result={replayResult} /> : null}
+            </section>
+            <section className="replay-panel paper-panel" aria-label="Paper trading and journal">
+              <div className="market-toolbar">
+                <div>
+                  <p className="eyebrow">Forward validation</p>
+                  <h3>Simulation-only order ticket</h3>
+                </div>
+                <span className="origin-label origin-label--paper">PAPER</span>
+              </div>
+              <p className="market-status">
+                No broker adapter · explicit confirmation · versioned fees, spread, slippage,
+                latency and liquidity
+              </p>
+              {!paperAccount ? (
+                <button
+                  className="button"
+                  type="button"
+                  disabled={isPaperWorking}
+                  onClick={() => void handleCreatePaperAccount()}
+                >
+                  {isPaperWorking ? 'Creating PAPER account...' : 'Create PAPER account'}
+                </button>
+              ) : (
+                <>
+                  <dl className="metrics-grid paper-summary">
+                    <Metric label="Account" value={paperAccount.name} />
+                    <Metric
+                      label="Cash"
+                      value={(
+                        paperSnapshot?.accounts[0]?.cashBalance ?? paperAccount.cashBalance
+                      ).toFixed(2)}
+                    />
+                    <Metric label="Origin" value="PAPER only" />
+                  </dl>
+                  <div className="replay-settings paper-ticket">
+                    <label>
+                      Side
+                      <select
+                        value={paperSide}
+                        onChange={(event) => setPaperSide(event.target.value as 'buy' | 'sell')}
+                      >
+                        <option value="buy">Buy</option>
+                        <option value="sell">Sell</option>
+                      </select>
+                    </label>
+                    <label>
+                      Quantity
+                      <input
+                        type="number"
+                        min="1"
+                        value={paperQuantity}
+                        onChange={(event) => setPaperQuantity(Number(event.target.value))}
+                      />
+                    </label>
+                    <label className="paper-confirm">
+                      <input
+                        type="checkbox"
+                        checked={paperConfirmed}
+                        onChange={(event) => setPaperConfirmed(event.target.checked)}
+                      />
+                      I confirm this simulated PAPER order
+                    </label>
+                  </div>
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={isPaperWorking || !paperConfirmed}
+                    onClick={() => void handlePaperOrder()}
+                  >
+                    {isPaperWorking
+                      ? 'Processing PAPER order...'
+                      : `Submit ${paperSide.toUpperCase()} PAPER order`}
+                  </button>
+                  <div className="paper-activity" aria-label="Paper positions and journal">
+                    <p>
+                      <strong>Positions</strong> {paperSnapshot?.positions.length ?? 0} ·{' '}
+                      <strong>Fills</strong> {paperSnapshot?.fills.length ?? 0} ·{' '}
+                      <strong>Journal</strong> {paperSnapshot?.journal.length ?? 0}
+                    </p>
+                    {paperSnapshot?.journal.slice(-3).map((trade) => (
+                      <p key={trade.id}>
+                        <span className="origin-label origin-label--paper">PAPER</span>{' '}
+                        {trade.direction.toUpperCase()} {trade.quantity} {trade.instrumentId} ·{' '}
+                        {trade.status}
+                      </p>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
             <button
               className="button button--secondary"

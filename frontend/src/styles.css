@@ -327,6 +327,49 @@ h3 {
   font-weight: 700;
   letter-spacing: 0.08em;
 }
+
+.origin-label--paper {
+  background: #fff3cd;
+  border-color: #d9a400;
+  color: #6b4f00;
+}
+
+.paper-panel {
+  border-color: #e8c75f;
+  box-shadow: inset 3px 0 #d9a400;
+}
+
+.paper-ticket select {
+  min-height: 42px;
+  border: 1px solid #d9d9e3;
+  border-radius: 6px;
+  padding: 0 0.65rem;
+  background: white;
+}
+
+.paper-ticket .paper-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.paper-ticket .paper-confirm input {
+  width: auto;
+}
+
+.paper-summary {
+  margin: 1rem 0;
+}
+
+.paper-activity {
+  margin-top: 1rem;
+  border-top: 1px solid #ececec;
+  padding-top: 0.75rem;
+}
+
+.paper-activity .origin-label {
+  margin-right: 0.4rem;
+}
 .replay-settings {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

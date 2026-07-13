@@ -46,6 +46,17 @@ OpenAPI is generated and contract-tested once implementation begins.
 - `GET /api/v1/statistics?replay_id=...` returns versioned replay-only metrics, eligibility, modeled-cost disclosure, calibration, and required cohort segments.
 - Replay resources use deny-by-default bearer authentication and appear not found across workspace boundaries.
 
+## Implemented paper-trading slice
+
+- `POST/GET /api/v1/paper/accounts` creates or lists versioned, workspace-owned PAPER accounts.
+- `POST /api/v1/paper/accounts/{accountId}/orders` submits confirmed market, limit, stop, or stop-limit orders with an idempotency key and risk-limit validation.
+- `POST /api/v1/paper/accounts/{accountId}/orders/{orderId}/cancel` cancels pending simulated orders.
+- `POST /api/v1/paper/accounts/{accountId}/process-bar` deterministically applies the pinned latency, liquidity, spread, slippage, fee, and conservative intrabar policies to an incoming bar.
+- `GET /api/v1/paper/accounts/{accountId}` returns PAPER-only orders, fills, positions, balanced ledger transactions, journal trades, and audit history.
+- `GET /api/v1/paper/accounts/{accountId}/statistics` returns forward PAPER statistics separately from replay results.
+- `PATCH /api/v1/paper/accounts/{accountId}/journal/{tradeId}` updates notes, tags, MAE, and MFE without replacing lifecycle audit history.
+- `POST /api/v1/paper/accounts/{accountId}/reset` closes an account version and retains its immutable history.
+
 ## WebSocket
 
 Connect at `/api/v1/stream`. Client messages subscribe/unsubscribe to authorized topics such as `market.bar`, `indicator.value`, `decision.published`, `replay.event`, and `system.health`. Each server message uses the architecture event envelope and includes a monotonically increasing connection sequence number. Clients detect gaps and resynchronize over HTTP.

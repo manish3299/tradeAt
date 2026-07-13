@@ -24,7 +24,7 @@ describe('App', () => {
     render(<App />);
 
     expect((await screen.findByRole('status')).textContent).toContain('Platform ready');
-    expect(screen.getByRole('heading', { name: /replay research workspace/i })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: /forward paper workspace/i })).not.toBeNull();
     expect(screen.getByRole('button', { name: /create workspace/i })).not.toBeNull();
   });
 
@@ -300,6 +300,8 @@ describe('App', () => {
     expect(await screen.findByText(/sample 5m bars/i)).not.toBeNull();
     expect(await screen.findByText('EMA')).not.toBeNull();
     expect(await screen.findByText(/uptrend \/ normal/i)).not.toBeNull();
+    expect(screen.getByText('PAPER')).not.toBeNull();
+    expect(screen.getByRole('button', { name: /create paper account/i })).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /run historical replay/i }));
     expect(await screen.findByText('More samples required')).not.toBeNull();

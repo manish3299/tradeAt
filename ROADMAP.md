@@ -12,7 +12,7 @@ Detailed implementation checklists are maintained in `docs/milestone-tasks.md`.
 | 4   | Indicators and regimes           | complete    | Charts/data expose deterministic EMA, RSI, ATR, structure, and market-regime evidence.                                              |
 | 5   | Decision engine v1               | complete    | TradeAt produces explainable long/short/abstain decisions with entry, stop, targets, risk, and vetoes.                              |
 | 6   | Replay, backtest, and statistics | complete    | **First actual results:** walk-forward historical outcomes, expectancy, target-hit rate, drawdown, calibration, MAE/MFE, and costs. |
-| 7   | Paper trading and journal        | not started | **Forward results:** decisions become simulated orders/fills/positions with paper equity and an auditable journal.                  |
+| 7   | Paper trading and journal        | complete    | **Forward results:** decisions become simulated orders/fills/positions with paper equity and an auditable journal.                  |
 | 8   | MVP dashboard                    | not started | **MVP ready:** one usable interface for market state, decisions, replay results, paper trading, journal, and core analytics.        |
 | 9   | Historical memory                | not started | Decisions show how comparable point-in-time setups performed previously.                                                            |
 | 10  | Strategy validation and learning | not started | Strategy/config versions are compared, monitored, and promoted through reproducible evidence gates.                                 |
@@ -21,7 +21,7 @@ Detailed implementation checklists are maintained in `docs/milestone-tasks.md`.
 
 ## Current next action
 
-Start Milestone 7 paper accounts, deterministic orders/fills, balanced ledger, and journal lifecycle.
+Start Milestone 8 unified MVP dashboard and complete the decision-to-result journey.
 
 ## Delivery checkpoints
 
