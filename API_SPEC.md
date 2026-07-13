@@ -86,3 +86,5 @@ policy rather than choosing the profitable path.
 ## Query safety
 
 Market and statistics endpoints require bounded time windows. Expensive exports and replay runs are asynchronous resources. Rate-limit headers communicate quota state.
+
+API responses use `Cache-Control: no-store`, browser hardening headers, and a one-megabyte request-body ceiling. `GET /api/v1/system/info` exposes the application version and configured release revision for incident correlation without returning secrets.

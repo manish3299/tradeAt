@@ -55,6 +55,15 @@ export async function buildApp({
   const app = Fastify({
     logger: { level: config.logLevel, redact: ['req.headers.authorization', 'req.headers.cookie'] },
     requestIdHeader: 'x-correlation-id',
+    bodyLimit: 1_048_576,
+  });
+  app.addHook('onSend', async (_request, reply, payload) => {
+    void reply.header('x-content-type-options', 'nosniff');
+    void reply.header('x-frame-options', 'DENY');
+    void reply.header('referrer-policy', 'no-referrer');
+    void reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+    void reply.header('cache-control', 'no-store');
+    return payload;
   });
   await app.register(cors, { origin: config.nodeEnv === 'production' ? false : true });
   const readiness = new CheckReadiness(probes, config.dependencyCheckTimeoutMs);
@@ -97,7 +106,11 @@ export async function buildApp({
     const result = await readiness.execute();
     return reply.code(result.status === 'ready' ? 200 : 503).send(result);
   });
-  app.get('/api/v1/system/info', () => ({ name: 'TradeAt API', version: '0.1.0' }));
+  app.get('/api/v1/system/info', () => ({
+    name: 'TradeAt API',
+    version: '0.1.0',
+    revision: config.releaseRevision ?? 'development',
+  }));
   registerAuthRoutes(app, auth);
   registerMarketRoutes(app, market);
   registerIndicatorRoutes(app, market);

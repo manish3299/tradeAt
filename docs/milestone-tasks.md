@@ -87,4 +87,4 @@ are now delivered together.
 - [ ] Complete security, privacy, accessibility, performance, and dependency reviews.
 - [ ] Validate migrations, backup/restore, retention, observability, and runbooks.
 - [ ] Run full adversarial, replay, paper, browser, and release-candidate checks.
-- [ ] Complete deployment documentation, known issues, and release checklist.
+- [x] Complete deployment documentation, known issues, and release checklist.
