@@ -56,11 +56,11 @@ are now delivered together.
 
 ## Milestone 7 - Paper Trading and Journal
 
-- [ ] Implement paper accounts, orders, deterministic fills, positions, and balanced ledger.
-- [ ] Add fee/slippage/latency/liquidity models, risk limits, and permanent PAPER labeling.
-- [ ] Implement journal lifecycle, notes/tags, R, duration, MAE/MFE, and audit history.
-- [ ] Track forward paper results separately from replay and manual trades.
-- [ ] Prove reconciliation, tenant isolation, idempotency, and complete broker isolation.
+- [x] Implement paper accounts, orders, deterministic fills, positions, and balanced ledger.
+- [x] Add fee/slippage/latency/liquidity models, risk limits, and permanent PAPER labeling.
+- [x] Implement journal lifecycle, notes/tags, R, duration, MAE/MFE, and audit history.
+- [x] Track forward paper results separately from replay and manual trades.
+- [x] Prove reconciliation, tenant isolation, idempotency, and complete broker isolation.
 
 ## Milestone 8 - MVP Dashboard
 

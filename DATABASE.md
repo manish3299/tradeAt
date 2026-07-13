@@ -41,6 +41,12 @@ PostgreSQL is authoritative. Use migrations, UTC `timestamptz`, UUID/ULID identi
 - Saving the same deterministic output is idempotent; a different output cannot replace an existing identity.
 - Lite mode uses the equivalent in-memory port, while external mode stores JSONB output with UTC creation time.
 
+## Paper persistence
+
+- `paper_workspace_states.workspace_id` is tenant-keyed and stores the bounded paper aggregate in JSONB for this milestone's modular-monolith transaction boundary.
+- The aggregate contains versioned accounts, idempotent orders, immutable fills, positions, balanced ledger transactions, journal lifecycle records, and audit events.
+- Lite mode uses the same `PaperStateStore` contract in memory. Later normalization can expand the aggregate into the designed paper tables without changing application contracts.
+
 ## Indexing and partitioning
 
 - Time-series tables index `(instrument_id, observed_at DESC)` and partition by time after benchmark evidence.

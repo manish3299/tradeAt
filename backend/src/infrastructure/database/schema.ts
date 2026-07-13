@@ -154,3 +154,11 @@ export const replayOutputs = pgTable('replay_outputs', {
   result: jsonb('result').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const paperWorkspaceStates = pgTable('paper_workspace_states', {
+  workspaceId: text('workspace_id')
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  state: jsonb('state').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

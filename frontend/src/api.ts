@@ -129,6 +129,64 @@ export type ReplayResearchResult = Readonly<{
   statistics: ReplayStatistics;
 }>;
 
+export type PaperAccount = Readonly<{
+  id: string;
+  name: string;
+  currency: string;
+  startingBalance: number;
+  cashBalance: number;
+  equity: number;
+  status: 'active' | 'reset';
+  version: number;
+  executionModel: {
+    version: string;
+    feeBps: number;
+    spreadBps: number;
+    slippageBps: number;
+    latencyMs: number;
+  };
+}>;
+export type PaperOrder = Readonly<{
+  id: string;
+  instrumentId: string;
+  side: 'buy' | 'sell';
+  type: string;
+  quantity: number;
+  status: 'pending' | 'filled' | 'cancelled' | 'rejected';
+  rejectionReason?: string;
+}>;
+export type PaperSnapshot = Readonly<{
+  accounts: readonly PaperAccount[];
+  orders: readonly PaperOrder[];
+  fills: readonly {
+    id: string;
+    instrumentId: string;
+    side: 'buy' | 'sell';
+    quantity: number;
+    price: number;
+    fee: number;
+    origin: 'paper';
+  }[];
+  positions: readonly {
+    instrumentId: string;
+    quantity: number;
+    averagePrice: number;
+    realizedPnl: number;
+  }[];
+  journal: readonly {
+    id: string;
+    instrumentId: string;
+    origin: 'paper';
+    status: 'open' | 'closed';
+    direction: 'long' | 'short';
+    quantity: number;
+    entryPrice: number;
+    returnR?: number;
+    notes: string;
+    tags: readonly string[];
+  }[];
+}>;
+
 const configuredUrl: unknown = import.meta.env['VITE_API_URL'];
 const baseUrl = typeof configuredUrl === 'string' ? configuredUrl : 'http://127.0.0.1:3000';
 
@@ -258,6 +316,78 @@ export async function runHistoricalReplay(
   if (!response.ok) throw new Error(`Request failed with ${response.status}`);
   const body = (await response.json()) as { statistics: ReplayStatistics };
   return { replay: completed.replay, statistics: body.statistics };
+}
+
+export async function createPaperAccount(accessToken: string): Promise<PaperAccount> {
+  const result = await postJson<{ account: PaperAccount }>(
+    '/api/v1/paper/accounts',
+    {
+      name: 'Forward proof',
+      starting_balance: 100_000,
+      currency: 'USD',
+      idempotency_key: 'default-forward-proof-account',
+    },
+    accessToken,
+  );
+  return result.account;
+}
+
+export async function submitPaperOrder(
+  accessToken: string,
+  accountId: string,
+  input: Readonly<{
+    instrumentId: string;
+    side: 'buy' | 'sell';
+    quantity: number;
+    referencePrice: number;
+  }>,
+): Promise<PaperOrder> {
+  const result = await postJson<{ order: PaperOrder }>(
+    `/api/v1/paper/accounts/${accountId}/orders`,
+    {
+      idempotency_key: crypto.randomUUID(),
+      instrument_id: input.instrumentId,
+      side: input.side,
+      type: 'market',
+      quantity: input.quantity,
+      reference_price: input.referencePrice,
+      confirmed: true,
+    },
+    accessToken,
+  );
+  return result.order;
+}
+
+export async function processPaperBar(
+  accessToken: string,
+  accountId: string,
+  bar: MarketBar,
+): Promise<void> {
+  await postJson(
+    `/api/v1/paper/accounts/${accountId}/process-bar`,
+    {
+      instrument_id: bar.instrument_id,
+      open_time: bar.open_time,
+      close_time: bar.close_time,
+      open: bar.open,
+      high: bar.high,
+      low: bar.low,
+      close: bar.close,
+      volume: bar.volume,
+    },
+    accessToken,
+  );
+}
+
+export async function fetchPaperSnapshot(
+  accessToken: string,
+  accountId: string,
+): Promise<PaperSnapshot> {
+  const response = await fetch(`${baseUrl}/api/v1/paper/accounts/${accountId}`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+  return ((await response.json()) as { snapshot: PaperSnapshot }).snapshot;
 }
 
 async function postJson<TResponse = unknown>(
