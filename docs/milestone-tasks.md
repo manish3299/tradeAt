@@ -13,7 +13,7 @@ are now delivered together.
 - [x] Add password security, deny-by-default `/me`, rate limits, and audit events.
 - [x] Add PostgreSQL persistent storage schema/store for external dependency mode.
 - [x] Add adversarial refresh reuse, repeated attempt, and expiry tests.
-- [ ] Add cross-tenant authorization tests once tenant-owned market resources exist.
+- [x] Add cross-tenant authorization tests once tenant-owned replay resources exist.
 
 ## Milestone 3 - Market Data and Pipeline
 
@@ -47,12 +47,12 @@ are now delivered together.
 
 ## Milestone 6 - Replay, Backtest, and Statistics
 
-- [ ] Implement deterministic clock/event source, controls, checkpoints, and version pinning.
-- [ ] Run the live decision contracts on chronological historical data without look-ahead.
-- [ ] Model spread, fees, slippage, ambiguous intrabar order, and realistic target/stop fills.
-- [ ] Add walk-forward evaluation against simple baselines rather than one optimized period.
-- [ ] Report expectancy R, profit factor, drawdown, hit rate, calibration, MAE/MFE, and coverage.
-- [ ] Require minimum samples and show results by instrument, session, regime, and setup.
+- [x] Implement deterministic clock/event source, controls, checkpoints, and version pinning.
+- [x] Run the live decision contracts on chronological historical data without look-ahead.
+- [x] Model spread, fees, slippage, ambiguous intrabar order, and realistic target/stop fills.
+- [x] Add walk-forward evaluation against simple baselines rather than one optimized period.
+- [x] Report expectancy R, profit factor, drawdown, hit rate, calibration, MAE/MFE, and coverage.
+- [x] Require minimum samples and show results by instrument, session, regime, and setup.
 
 ## Milestone 7 - Paper Trading and Journal
 

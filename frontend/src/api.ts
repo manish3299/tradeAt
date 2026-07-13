@@ -82,6 +82,53 @@ export type RegimeClassification = Readonly<{
   reasons: readonly string[];
 }>;
 
+export type ReplayRun = Readonly<{
+  id: string;
+  instrument_id: string;
+  timeframe: string;
+  identity_hash: string;
+  status: 'ready' | 'running' | 'paused' | 'completed';
+  cursor: number;
+  event_count: number;
+  replay_time: string;
+  speed: number;
+  result?: {
+    decision_count: number;
+    outcome_count: number;
+    execution_version: string;
+    baselines: readonly { name: string; netReturn: number; coverage: number }[];
+  };
+}>;
+
+export type ReplayStatistics = Readonly<{
+  origin: 'replay';
+  definition_version: string;
+  execution_version: string;
+  costs_included: true;
+  starting_equity: number;
+  decision_count: number;
+  abstention_count: number;
+  coverage: number;
+  overall: {
+    eligible: boolean;
+    sample_size: number;
+    expectancy_r?: number;
+    profit_factor?: number;
+    maximum_drawdown: number;
+    maximum_drawdown_percent: number;
+    hit_rate?: number;
+    target_hit_rate?: number;
+    average_mae_r?: number;
+    average_mfe_r?: number;
+    total_costs: number;
+  };
+}>;
+
+export type ReplayResearchResult = Readonly<{
+  replay: ReplayRun;
+  statistics: ReplayStatistics;
+}>;
+
 const configuredUrl: unknown = import.meta.env['VITE_API_URL'];
 const baseUrl = typeof configuredUrl === 'string' ? configuredUrl : 'http://127.0.0.1:3000';
 
@@ -177,13 +224,53 @@ export async function fetchRegime(instrumentId: string): Promise<RegimeClassific
   return body.regime;
 }
 
+export async function runHistoricalReplay(
+  accessToken: string,
+  input: Readonly<{
+    instrumentId: string;
+    trainingBars: number;
+    evaluationBars: number;
+    minimumSamples: number;
+    startingEquity: number;
+  }>,
+): Promise<ReplayResearchResult> {
+  const created = await postJson<{ replay: ReplayRun }>(
+    '/api/v1/replays',
+    {
+      instrument_id: input.instrumentId,
+      timeframe: '5m',
+      training_bars: input.trainingBars,
+      evaluation_bars: input.evaluationBars,
+      minimum_samples: input.minimumSamples,
+      starting_equity: input.startingEquity,
+    },
+    accessToken,
+  );
+  const completed = await postJson<{ replay: ReplayRun }>(
+    `/api/v1/replays/${created.replay.id}/control`,
+    { action: 'start' },
+    accessToken,
+  );
+  const response = await fetch(
+    `${baseUrl}/api/v1/statistics?${new URLSearchParams({ replay_id: created.replay.id })}`,
+    { headers: { authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+  const body = (await response.json()) as { statistics: ReplayStatistics };
+  return { replay: completed.replay, statistics: body.statistics };
+}
+
 async function postJson<TResponse = unknown>(
   path: string,
-  payload: Record<string, string>,
+  payload: unknown,
+  accessToken?: string,
 ): Promise<TResponse> {
   const response = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error(`Request failed with ${response.status}`);

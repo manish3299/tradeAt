@@ -3,16 +3,20 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { AppConfig } from './config.js';
 import { AuthService } from './application/auth-service.js';
 import { CheckReadiness } from './application/check-readiness.js';
+import { ReplayRunService } from './application/replay-run-service.js';
 import type { DependencyProbe } from './domain/health.js';
 import type { MarketDataStore } from './domain/market.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
 import { registerIndicatorRoutes } from './infrastructure/http/indicator-routes.js';
 import { registerMarketRoutes } from './infrastructure/http/market-routes.js';
 import { registerRegimeRoutes } from './infrastructure/http/regime-routes.js';
+import { registerReplayRoutes } from './infrastructure/http/replay-routes.js';
 import { InMemoryIdentityStore } from './infrastructure/identity/in-memory-identity-store.js';
 import { PostgresIdentityStore } from './infrastructure/identity/postgres-identity-store.js';
 import { InMemoryMarketDataStore } from './infrastructure/market/in-memory-market-data-store.js';
 import { PostgresMarketDataStore } from './infrastructure/market/postgres-market-data-store.js';
+import { InMemoryReplayResultStore } from './infrastructure/replay/in-memory-replay-result-store.js';
+import { PostgresReplayResultStore } from './infrastructure/replay/postgres-replay-result-store.js';
 import { OpaqueSecretGenerator } from './infrastructure/security/opaque-secret-generator.js';
 import { ScryptPasswordHasher } from './infrastructure/security/scrypt-password-hasher.js';
 
@@ -21,6 +25,7 @@ export type AppDependencies = Readonly<{
   probes: readonly DependencyProbe[];
   authService?: AuthService;
   marketStore?: MarketDataStore;
+  replayService?: ReplayRunService;
 }>;
 
 export async function buildApp({
@@ -28,6 +33,7 @@ export async function buildApp({
   probes,
   authService,
   marketStore,
+  replayService,
 }: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.logLevel, redact: ['req.headers.authorization', 'req.headers.cookie'] },
@@ -55,6 +61,10 @@ export async function buildApp({
       ? () => ownedMarketStore.close()
       : () => Promise.resolve();
   const market = marketStore ?? ownedMarketStore;
+  const ownedReplayResultStore =
+    config.dependencyMode === 'external' && config.databaseUrl
+      ? new PostgresReplayResultStore(config.databaseUrl)
+      : new InMemoryReplayResultStore();
 
   app.get('/health/live', () => ({ status: 'alive', timestamp: new Date().toISOString() }));
   app.get('/health/ready', async (_request, reply) => {
@@ -66,11 +76,19 @@ export async function buildApp({
   registerMarketRoutes(app, market);
   registerIndicatorRoutes(app, market);
   registerRegimeRoutes(app, market);
+  registerReplayRoutes(
+    app,
+    auth,
+    replayService ?? new ReplayRunService(market, ownedReplayResultStore),
+  );
   app.addHook('onClose', async () => {
     await Promise.all([
       ...probes.map((probe) => probe.close()),
       authService ? Promise.resolve() : closeOwnedIdentityStore(),
       marketStore ? Promise.resolve() : closeOwnedMarketStore(),
+      ownedReplayResultStore instanceof PostgresReplayResultStore
+        ? ownedReplayResultStore.close()
+        : Promise.resolve(),
     ]);
   });
   return app;

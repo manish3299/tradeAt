@@ -15,6 +15,13 @@
       "when": 1783814400000,
       "tag": "0001_market_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783929600000,
+      "tag": "0002_replay_outputs",
+      "breakpoints": true
     }
   ]
 }

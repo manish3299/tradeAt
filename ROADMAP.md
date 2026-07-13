@@ -7,11 +7,11 @@ Detailed implementation checklists are maintained in `docs/milestone-tasks.md`.
 | #   | Milestone                        | Status      | User-visible result                                                                                                                 |
 | --- | -------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Project setup                    | complete    | TradeAt builds, tests, and runs locally on the low-end laptop.                                                                      |
-| 2   | Authentication                   | in progress | A user can securely register, sign in, and own an isolated workspace.                                                               |
-| 3   | Market data and pipeline         | not started | TradeAt can ingest, normalize, store, and query trustworthy historical/live bars.                                                   |
-| 4   | Indicators and regimes           | not started | Charts/data expose deterministic EMA, RSI, ATR, structure, and market-regime evidence.                                              |
-| 5   | Decision engine v1               | not started | TradeAt produces explainable long/short/abstain decisions with entry, stop, targets, risk, and vetoes.                              |
-| 6   | Replay, backtest, and statistics | not started | **First actual results:** walk-forward historical outcomes, expectancy, target-hit rate, drawdown, calibration, MAE/MFE, and costs. |
+| 2   | Authentication                   | complete    | A user can securely register, sign in, and own an isolated workspace.                                                               |
+| 3   | Market data and pipeline         | complete    | TradeAt can ingest, normalize, store, and query trustworthy historical/live bars.                                                   |
+| 4   | Indicators and regimes           | complete    | Charts/data expose deterministic EMA, RSI, ATR, structure, and market-regime evidence.                                              |
+| 5   | Decision engine v1               | complete    | TradeAt produces explainable long/short/abstain decisions with entry, stop, targets, risk, and vetoes.                              |
+| 6   | Replay, backtest, and statistics | complete    | **First actual results:** walk-forward historical outcomes, expectancy, target-hit rate, drawdown, calibration, MAE/MFE, and costs. |
 | 7   | Paper trading and journal        | not started | **Forward results:** decisions become simulated orders/fills/positions with paper equity and an auditable journal.                  |
 | 8   | MVP dashboard                    | not started | **MVP ready:** one usable interface for market state, decisions, replay results, paper trading, journal, and core analytics.        |
 | 9   | Historical memory                | not started | Decisions show how comparable point-in-time setups performed previously.                                                            |
@@ -21,7 +21,7 @@ Detailed implementation checklists are maintained in `docs/milestone-tasks.md`.
 
 ## Current next action
 
-Start milestone 2 authentication: define auth domain contracts, implement register/login/refresh/logout API slices, add password hashing and token rotation, and cover the flows with security-focused tests.
+Start Milestone 7 paper accounts, deterministic orders/fills, balanced ledger, and journal lifecycle.
 
 ## Delivery checkpoints
 
