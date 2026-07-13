@@ -6,6 +6,7 @@ import { CheckReadiness } from './application/check-readiness.js';
 import { ReplayRunService } from './application/replay-run-service.js';
 import { PaperTradingService } from './application/paper-trading-service.js';
 import { HistoricalMemoryService } from './application/historical-memory-service.js';
+import { StrategyValidationService } from './application/strategy-validation-service.js';
 import type { DependencyProbe } from './domain/health.js';
 import type { MarketDataStore } from './domain/market.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
@@ -16,6 +17,7 @@ import { registerRegimeRoutes } from './infrastructure/http/regime-routes.js';
 import { registerReplayRoutes } from './infrastructure/http/replay-routes.js';
 import { registerPaperRoutes } from './infrastructure/http/paper-routes.js';
 import { registerHistoricalMemoryRoutes } from './infrastructure/http/historical-memory-routes.js';
+import { registerStrategyValidationRoutes } from './infrastructure/http/strategy-validation-routes.js';
 import { InMemoryIdentityStore } from './infrastructure/identity/in-memory-identity-store.js';
 import { PostgresIdentityStore } from './infrastructure/identity/postgres-identity-store.js';
 import { InMemoryMarketDataStore } from './infrastructure/market/in-memory-market-data-store.js';
@@ -37,6 +39,7 @@ export type AppDependencies = Readonly<{
   replayService?: ReplayRunService;
   paperService?: PaperTradingService;
   memoryService?: HistoricalMemoryService;
+  strategyValidationService?: StrategyValidationService;
 }>;
 
 export async function buildApp({
@@ -47,6 +50,7 @@ export async function buildApp({
   replayService,
   paperService,
   memoryService,
+  strategyValidationService,
 }: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.logLevel, redact: ['req.headers.authorization', 'req.headers.cookie'] },
@@ -106,6 +110,11 @@ export async function buildApp({
   );
   registerPaperRoutes(app, auth, paperService ?? new PaperTradingService(ownedPaperStore));
   registerHistoricalMemoryRoutes(app, auth, market, memory);
+  registerStrategyValidationRoutes(
+    app,
+    auth,
+    strategyValidationService ?? new StrategyValidationService(),
+  );
   app.addHook('onClose', async () => {
     await Promise.all([
       ...probes.map((probe) => probe.close()),
