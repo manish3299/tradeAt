@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { PublishedDecision } from '../domain/decisions.js';
 import type {
   JournalTrade,
   LedgerPosting,
@@ -138,10 +139,39 @@ export class PaperTradingService {
     if (!input.confirmed) throw new PaperTradingError('explicit_confirmation_required');
     if (account.status !== 'active') throw new PaperTradingError('account_not_active', 409);
     validateOrder(input);
+    const submittedAt = this.now();
     const notional = input.quantity * input.referencePrice;
     const maxNotional = account.equity * 0.25;
-    const submittedAt = this.now();
-    const rejected = notional > maxNotional;
+    const currentExposure = state.positions
+      .filter((position) => position.accountId === accountId)
+      .reduce((sum, position) => sum + Math.abs(position.quantity * position.averagePrice), 0);
+    const maxExposure = account.equity * 0.5;
+    const positionCount = state.positions.filter((position) => position.accountId === accountId).length;
+    const maxPositions = 3;
+    const instrumentExposure = state.positions
+      .filter(
+        (position) =>
+          position.accountId === accountId && position.instrumentId === input.instrumentId,
+      )
+      .reduce((sum, position) => sum + Math.abs(position.quantity * position.averagePrice), 0) +
+      state.orders
+        .filter(
+          (order) =>
+            order.accountId === accountId &&
+            order.instrumentId === input.instrumentId &&
+            order.status === 'pending',
+        )
+        .reduce(
+          (sum, order) =>
+            sum + (order.referencePrice ?? order.limitPrice ?? order.stopPrice ?? 0) * order.quantity,
+          0,
+        );
+    const maxInstrumentExposure = account.equity * 0.1;
+    const rejected =
+      positionCount >= maxPositions ||
+      notional > maxNotional ||
+      instrumentExposure + notional > maxInstrumentExposure ||
+      currentExposure + notional > maxExposure;
     const order: PaperOrder = {
       id: randomUUID(),
       workspaceId,
@@ -153,11 +183,24 @@ export class PaperTradingService {
       quantity: input.quantity,
       ...(input.limitPrice !== undefined ? { limitPrice: input.limitPrice } : {}),
       ...(input.stopPrice !== undefined ? { stopPrice: input.stopPrice } : {}),
+      ...(input.referencePrice !== undefined ? { referencePrice: input.referencePrice } : {}),
       status: rejected ? 'rejected' : 'pending',
       submittedAt,
       eligibleAt: new Date(submittedAt.getTime() + account.executionModel.latencyMs),
       filledQuantity: 0,
-      ...(rejected ? { rejectionReason: 'maximum_notional_exceeded' } : {}),
+      ...(rejected
+        ? {
+            rejectionReason: positionCount >= maxPositions
+              ? 'maximum_positions_exceeded'
+              : notional > maxNotional
+                ? 'maximum_notional_exceeded'
+                : instrumentExposure + notional > maxInstrumentExposure
+                  ? 'maximum_instrument_exposure_exceeded'
+                  : currentExposure + notional > maxExposure
+                    ? 'maximum_exposure_exceeded'
+                    : 'maximum_notional_exceeded',
+          }
+        : {}),
     };
     const next = {
       ...state,
@@ -179,6 +222,35 @@ export class PaperTradingService {
     };
     await this.store.save(workspaceId, next);
     return order;
+  }
+
+  async placeDecisionOrder(
+    workspaceId: string,
+    accountId: string,
+    input: Readonly<{
+      idempotencyKey: string;
+      decision: PublishedDecision;
+      confirmed: boolean;
+    }>,
+  ): Promise<PaperOrder> {
+    const decision = input.decision;
+    if (decision.direction === 'abstain' || !decision.entryZone || decision.stop === undefined) {
+      throw new PaperTradingError('decision_not_actionable');
+    }
+    const side: PaperOrderSide = decision.direction === 'long' ? 'buy' : 'sell';
+    const referencePrice = (decision.entryZone.low + decision.entryZone.high) / 2;
+    const quantity = Math.max(1, Math.round((decision.positionSizing?.suggestedSize ?? 1) * 100));
+    return this.placeOrder(workspaceId, accountId, {
+      idempotencyKey: input.idempotencyKey,
+      instrumentId: decision.instrumentId,
+      side,
+      type: 'limit',
+      quantity,
+      limitPrice: referencePrice,
+      referencePrice,
+      confirmed: input.confirmed,
+      initialRiskPerUnit: decision.riskR,
+    });
   }
 
   async cancelOrder(workspaceId: string, accountId: string, orderId: string): Promise<PaperOrder> {

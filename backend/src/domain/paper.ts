@@ -40,6 +40,7 @@ export type PaperOrder = Readonly<{
   quantity: number;
   limitPrice?: number;
   stopPrice?: number;
+  referencePrice?: number;
   status: PaperOrderStatus;
   submittedAt: Date;
   eligibleAt: Date;
